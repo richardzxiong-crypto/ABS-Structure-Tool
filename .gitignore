@@ -16,3 +16,4 @@ frontend/dist/
 
 # Local deal library versions (snapshots are local working state)
 deals/*/versions/
+*.tsbuildinfo
