@@ -1,0 +1,14 @@
+{
+  "bonds": {
+    "A": {
+      "wal_years": 0.4409452451024205,
+      "principal_window": [
+        1,
+        10
+      ]
+    },
+    "B": {
+      "total_writedown": 0.29083927795530684
+    }
+  }
+}

@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "id": "test-deal",
+  "name": "Test Deal",
+  "description": "",
+  "num_periods": 12,
+  "collateral": {
+    "asset_class": "amortizing_loan",
+    "replines": [
+      {
+        "id": "R1",
+        "balance": 100.0,
+        "gross_rate": 0.08,
+        "original_term": 12,
+        "remaining_term": 12,
+        "amort_type": "level_pay",
+        "collection_delay": 0,
+        "funding_delay": 0
+      }
+    ],
+    "servicing_fee_rate": 0.0,
+    "fee_basis": "trust"
+  },
+  "structure": {
+    "classes": [
+      {
+        "id": "A",
+        "name": "",
+        "balance": 80.0,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.05
+        },
+        "day_count": "30/360",
+        "price": null
+      },
+      {
+        "id": "B",
+        "name": "",
+        "balance": 20.0,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.07
+        },
+        "day_count": "30/360",
+        "price": null
+      }
+    ],
+    "allocation_tree": {
+      "type": "group",
+      "name": "root",
+      "mode": "sequential",
+      "children": [
+        {
+          "type": "class",
+          "class_id": "A"
+        },
+        {
+          "type": "class",
+          "class_id": "B"
+        }
+      ],
+      "pro_rata_basis": "current",
+      "overflow": "sequential",
+      "target_balance_spec": null
+    }
+  },
+  "fees": [
+    {
+      "name": "trustee",
+      "rate": 0.0025,
+      "fixed": 0.0,
+      "basis": "trust"
+    }
+  ],
+  "reserve_accounts": [],
+  "ysoc": null,
+  "waterfall": {
+    "mode": "split",
+    "waterfalls": [
+      {
+        "name": "interest",
+        "steps": [
+          {
+            "id": "i1",
+            "label": "",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_fees",
+            "fees": [
+              "trustee"
+            ]
+          },
+          {
+            "id": "i2",
+            "label": "",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_interest",
+            "targets": [
+              "A",
+              "B"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "principal",
+        "steps": [
+          {
+            "id": "p1",
+            "label": "",
+            "source": "principal_collections",
+            "condition": null,
+            "type": "pay_principal",
+            "targets": [
+              "A",
+              "B"
+            ],
+            "amount_rule": "collections",
+            "target_oc": {
+              "kind": "fixed",
+              "value": 0.0
+            },
+            "pool_basis": "trust"
+          },
+          {
+            "id": "p2",
+            "label": "",
+            "source": "principal_collections",
+            "condition": null,
+            "type": "release_residual",
+            "to": "residual"
+          },
+          {
+            "id": "p3",
+            "label": "",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "release_residual",
+            "to": "residual"
+          }
+        ]
+      }
+    ]
+  },
+  "triggers": [],
+  "scenarios": [
+    {
+      "name": "base",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.05
+        },
+        "speed_type": "voluntary"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cdr",
+          "cdr": {
+            "type": "scalar",
+            "value": 0.01
+          }
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.5
+        },
+        "charge_off_lag": 1,
+        "recovery_lag": 2
+      },
+      "recoveries_to": "principal",
+      "index_curves": {}
+    }
+  ]
+}

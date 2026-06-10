@@ -62,3 +62,13 @@ external sources, triggers + step conditions, `target_balance` mode,
 hand-computed models at 1e-6), invariant tests (cash conservation, no
 negative balances, roll-forward ties) run across scenario types, unit tests,
 and API round-trip tests.
+
+### Verifying against your own gold standard
+
+Drop a deal + expected numbers into `backend/tests/golden/cases/<name>/`
+(format in `cases/README.md`; partial rows/columns fine, tolerance
+configurable) and `make test` compares the engine against them.
+`docs/MODEL_CONVENTIONS.md` defines every timing/rate convention so your
+spreadsheet computes the same quantities, and
+`python scripts/dump_results.py <deal.json> <scenario>` dumps engine output
+in the same CSV format for diffing.
