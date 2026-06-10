@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "id": "example-auto-2024-1",
+  "name": "Example Auto 2024-1",
+  "description": "Example deal created from the auto_seq_2tranche template.",
+  "num_periods": 60,
+  "collateral": {
+    "asset_class": "amortizing_loan",
+    "replines": [
+      {
+        "id": "R1",
+        "balance": 100000000.0,
+        "gross_rate": 0.075,
+        "original_term": 60,
+        "remaining_term": 60,
+        "amort_type": "level_pay",
+        "collection_delay": 0,
+        "funding_delay": 0
+      }
+    ],
+    "servicing_fee_rate": 0.01,
+    "fee_basis": "trust"
+  },
+  "structure": {
+    "classes": [
+      {
+        "id": "A",
+        "name": "Class A",
+        "balance": 88000000.0,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.045
+        },
+        "day_count": "30/360",
+        "price": 100.0
+      },
+      {
+        "id": "B",
+        "name": "Class B",
+        "balance": 12000000.0,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.065
+        },
+        "day_count": "30/360",
+        "price": 100.0
+      }
+    ],
+    "allocation_tree": {
+      "type": "group",
+      "name": "root",
+      "mode": "sequential",
+      "children": [
+        {
+          "type": "class",
+          "class_id": "A"
+        },
+        {
+          "type": "class",
+          "class_id": "B"
+        }
+      ],
+      "pro_rata_basis": "current",
+      "overflow": "sequential",
+      "target_balance_spec": null
+    }
+  },
+  "fees": [
+    {
+      "name": "trustee",
+      "rate": 0.001,
+      "fixed": 0.0,
+      "basis": "trust"
+    }
+  ],
+  "reserve_accounts": [],
+  "ysoc": null,
+  "waterfall": {
+    "mode": "split",
+    "waterfalls": [
+      {
+        "name": "interest",
+        "steps": [
+          {
+            "id": "int_1_fees",
+            "label": "Trustee fee",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_fees",
+            "fees": [
+              "trustee"
+            ]
+          },
+          {
+            "id": "int_2_bond_int",
+            "label": "Class A, B interest",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_interest",
+            "targets": [
+              "A",
+              "B"
+            ]
+          },
+          {
+            "id": "int_3_shortfall",
+            "label": "Interest shortfall carryforward",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_interest_shortfall",
+            "targets": [
+              "A",
+              "B"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "principal",
+        "steps": [
+          {
+            "id": "prin_1_seq",
+            "label": "Sequential principal",
+            "source": "principal_collections",
+            "condition": null,
+            "type": "pay_principal",
+            "targets": [
+              "A",
+              "B"
+            ],
+            "amount_rule": "collections",
+            "target_oc": {
+              "kind": "fixed",
+              "value": 0.0
+            },
+            "pool_basis": "trust"
+          },
+          {
+            "id": "prin_2_pda",
+            "label": "Regular PDA from excess interest",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "pay_principal",
+            "targets": [
+              "A",
+              "B"
+            ],
+            "amount_rule": "regular_pda",
+            "target_oc": {
+              "kind": "fixed",
+              "value": 0.0
+            },
+            "pool_basis": "trust"
+          },
+          {
+            "id": "res_1",
+            "label": "Residual (principal)",
+            "source": "principal_collections",
+            "condition": null,
+            "type": "release_residual",
+            "to": "residual"
+          },
+          {
+            "id": "res_2",
+            "label": "Residual (interest)",
+            "source": "interest_collections",
+            "condition": null,
+            "type": "release_residual",
+            "to": "residual"
+          }
+        ]
+      }
+    ]
+  },
+  "triggers": [],
+  "scenarios": [
+    {
+      "name": "base",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.12
+        },
+        "speed_type": "voluntary"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cdr",
+          "cdr": {
+            "type": "scalar",
+            "value": 0.015
+          }
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.55
+        },
+        "charge_off_lag": 3,
+        "recovery_lag": 6
+      },
+      "recoveries_to": "principal",
+      "index_curves": {}
+    },
+    {
+      "name": "stress",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.06
+        },
+        "speed_type": "voluntary"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cum_loss",
+          "cum_net_loss": 0.06,
+          "timing": [
+            0.05,
+            0.1,
+            0.15,
+            0.15,
+            0.15,
+            0.12,
+            0.1,
+            0.08,
+            0.05,
+            0.05
+          ],
+          "method": "aggregate_MDR"
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.6
+        },
+        "charge_off_lag": 4,
+        "recovery_lag": 8
+      },
+      "recoveries_to": "principal",
+      "index_curves": {}
+    }
+  ]
+}
