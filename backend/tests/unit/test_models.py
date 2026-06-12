@@ -50,19 +50,19 @@ def test_tree_must_cover_all_classes():
         Deal.model_validate(cfg)
 
 
-def test_phase1_rejects_floating_coupon():
+def test_rejects_act_daycount_without_dates():
     cfg = make_deal().model_dump()
-    cfg["structure"]["classes"][0]["coupon"] = {"type": "floating", "index": "SOFR", "margin": 0.01}
+    cfg["structure"]["classes"][0]["day_count"] = "ACT/360"
     deal = Deal.model_validate(cfg)
-    with pytest.raises(UnsupportedFeatureError, match="floating"):
+    with pytest.raises(UnsupportedFeatureError, match="needs deal dates"):
         check_phase1_support(deal)
 
 
-def test_phase1_rejects_priority_pda():
+def test_rejects_external_source():
     cfg = make_deal().model_dump()
-    cfg["waterfall"]["waterfalls"][1]["steps"][0]["amount_rule"] = "priority_pda"
+    cfg["waterfall"]["waterfalls"][0]["steps"][0]["source"] = "external:swap"
     deal = Deal.model_validate(cfg)
-    with pytest.raises(UnsupportedFeatureError, match="priority_pda"):
+    with pytest.raises(UnsupportedFeatureError, match="external"):
         check_phase1_support(deal)
 
 
@@ -75,5 +75,4 @@ def test_every_step_type_has_a_handler():
 
     union_types = {m.model_fields["type"].default for m in get_args(get_args(AnyStep)[0])}
     registered = set(STEP_REGISTRY.type_keys)
-    # fund_reserve is modeled but lands in Phase 2 (no handler yet)
-    assert registered == union_types - {"fund_reserve"}
+    assert registered == union_types

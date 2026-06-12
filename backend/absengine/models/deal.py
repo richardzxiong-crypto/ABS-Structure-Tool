@@ -1,3 +1,7 @@
+from datetime import date
+from typing import Literal
+
+from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field, model_validator
 
 from .accounts import FeeSpec, ReserveAccount, YsocConfig
@@ -6,14 +10,46 @@ from .scenario import Scenario
 from .structure import CapitalStructure, tree_class_ids, tree_group_names
 from .triggers import AnyTrigger
 from .waterfall import (
+    FundReserveStep,
     PayFeesStep,
     PayInterestShortfallStep,
     PayInterestStep,
     PayPrincipalStep,
+    RetireBondsStep,
     WaterfallSpec,
 )
 
 _BUILTIN_SOURCES = {"interest_collections", "principal_collections", "total_collections"}
+
+
+class DealDates(BaseModel):
+    """Payment-date calendar. Bond accrual period t is
+    [payment_date(t-1), payment_date(t)], with payment_date(0) = closing_date -
+    so period 1 is typically short. Without DealDates every accrual is a flat
+    1/12 (30/360 monthly) and ACT day counts are rejected.
+
+    business_day_adjust="following" rolls payment dates to the next US
+    business day for ACT day-count accrual (money-market convention);
+    30/360 classes always accrue on the unadjusted dates.
+    """
+
+    closing_date: date
+    first_payment_date: date
+    business_day_adjust: Literal["none", "following"] = "none"
+
+    def payment_date(self, period: int) -> date:
+        """period 0 = closing date; period t = first payment + (t-1) months."""
+        if period <= 0:
+            return self.closing_date
+        return self.first_payment_date + relativedelta(months=period - 1)
+
+    def adjusted_payment_date(self, period: int) -> date:
+        from ..dates.calendar import adjust_following
+
+        d = self.payment_date(period)
+        if period > 0 and self.business_day_adjust == "following":
+            return adjust_following(d)
+        return d
 
 
 class Deal(BaseModel):
@@ -22,6 +58,7 @@ class Deal(BaseModel):
     name: str = ""
     description: str = ""
     num_periods: int = Field(gt=0)
+    dates: DealDates | None = None
     collateral: CollateralPool
     structure: CapitalStructure
     fees: list[FeeSpec] = Field(default_factory=list)
@@ -74,9 +111,20 @@ class Deal(BaseModel):
                     unknown = set(step.targets) - valid_targets
                     if unknown:
                         raise ValueError(f"step {step.id!r}: unknown targets {sorted(unknown)}")
+                if isinstance(step, FundReserveStep) and step.account not in reserve_names:
+                    raise ValueError(f"step {step.id!r}: unknown reserve account {step.account!r}")
+                if isinstance(step, RetireBondsStep) and step.reserve not in reserve_names:
+                    raise ValueError(f"step {step.id!r}: unknown reserve account {step.reserve!r}")
                 cond = step.condition
                 if cond is not None and cond.trigger not in trigger_names:
                     raise ValueError(f"step {step.id!r}: unknown trigger {cond.trigger!r}")
+
+        if self.ysoc is not None and self.ysoc.stepdown_when_class_zero is not None:
+            if self.ysoc.stepdown_when_class_zero not in class_ids:
+                raise ValueError(
+                    f"ysoc.stepdown_when_class_zero: unknown class "
+                    f"{self.ysoc.stepdown_when_class_zero!r}"
+                )
         return self
 
     def scenario_by_name(self, name: str) -> Scenario:

@@ -11,27 +11,28 @@ from .collateral.base import project_pool
 from .models.common import DayCount
 from .models.deal import Deal
 from .models.scenario import Scenario
-from .models.structure import FixedCoupon, GroupNode
-from .models.waterfall import PayPrincipalStep
+from .models.structure import GroupNode
 from .waterfall import run_waterfall
 
 
 class UnsupportedFeatureError(Exception):
-    """A modeled-but-not-yet-implemented feature was used (clear Phase boundary)."""
+    """A modeled-but-not-yet-implemented feature was used (clear phase boundary)."""
 
 
-def check_phase1_support(deal: Deal) -> None:
-    for c in deal.structure.classes:
-        if not isinstance(c.coupon, FixedCoupon):
-            raise UnsupportedFeatureError(f"class {c.id}: floating coupons land in Phase 2")
-        if c.day_count != DayCount.THIRTY_360:
-            raise UnsupportedFeatureError(f"class {c.id}: only 30/360 in Phase 1")
+def check_supported(deal: Deal) -> None:
+    if deal.dates is None:
+        for c in deal.structure.classes:
+            if c.day_count != DayCount.THIRTY_360:
+                raise UnsupportedFeatureError(
+                    f"class {c.id}: {c.day_count.value} day count needs deal dates "
+                    f"(set deal.dates for a payment calendar)"
+                )
 
     def walk(node):
         if isinstance(node, GroupNode):
             if node.mode == "target_balance":
                 raise UnsupportedFeatureError(
-                    f"group {node.name!r}: target_balance allocation lands in Phase 2"
+                    f"group {node.name!r}: target_balance allocation is not implemented yet"
                 )
             for ch in node.children:
                 walk(ch)
@@ -41,21 +42,15 @@ def check_phase1_support(deal: Deal) -> None:
     for wf in deal.waterfall.waterfalls:
         for step in wf.steps:
             if step.condition is not None:
-                raise UnsupportedFeatureError(f"step {step.id}: trigger conditions land in Phase 2")
-            if step.source.startswith(("reserve:", "external:")):
-                raise UnsupportedFeatureError(f"step {step.id}: source {step.source!r} lands in Phase 2")
-            if step.type == "fund_reserve":
-                raise UnsupportedFeatureError(f"step {step.id}: reserve accounts land in Phase 2")
-            if isinstance(step, PayPrincipalStep) and step.amount_rule in ("priority_pda", "turbo"):
-                raise UnsupportedFeatureError(
-                    f"step {step.id}: amount_rule {step.amount_rule!r} lands in Phase 2"
-                )
+                raise UnsupportedFeatureError(f"step {step.id}: trigger conditions are not implemented yet")
+            if step.source.startswith("external:"):
+                raise UnsupportedFeatureError(f"step {step.id}: external sources are not implemented yet")
     if deal.triggers:
-        raise UnsupportedFeatureError("trigger evaluation lands in Phase 2")
-    if deal.reserve_accounts:
-        raise UnsupportedFeatureError("reserve accounts land in Phase 2")
-    if deal.ysoc is not None:
-        raise UnsupportedFeatureError("YSOC lands in Phase 2")
+        raise UnsupportedFeatureError("trigger evaluation is not implemented yet")
+
+
+# backwards-compatible alias (tests / older callers)
+check_phase1_support = check_supported
 
 
 def run_deal(deal: Deal, scenario: Scenario | str | None = None) -> DealRunResult:
@@ -66,9 +61,17 @@ def run_deal(deal: Deal, scenario: Scenario | str | None = None) -> DealRunResul
     else:
         scen = scenario
 
-    check_phase1_support(deal)
-    collat = project_pool(deal.collateral, scen, deal.num_periods)
+    check_supported(deal)
+    collat = project_pool(deal.collateral, scen, deal.num_periods, deal.ysoc)
     wf = run_waterfall(deal, scen, collat)
+    # reported ysoa/adjusted_pool stay at the primary strike (dealer-report
+    # convention; the PDA formulas use the stepdown strike internally once it
+    # latches - wf.ysoa/wf.adjusted_pool carry the realized path). Period 1
+    # honors the hard-coded closing YSOA when configured.
+    if deal.ysoc is not None and deal.ysoc.initial_amount is not None:
+        basis = collat.basis_beg(deal.ysoc.basis)
+        collat.pool["ysoa"][0] = deal.ysoc.initial_amount
+        collat.pool["adjusted_pool"][0] = float(basis[0]) - deal.ysoc.initial_amount
 
     metrics: dict = {"bonds": {}}
     for c in deal.structure.classes:

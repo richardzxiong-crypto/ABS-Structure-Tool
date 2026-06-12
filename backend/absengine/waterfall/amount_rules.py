@@ -34,12 +34,36 @@ def original_balance_basis(state: EngineState):
 
 def target_oc_amount(state: EngineState, spec: TargetOCSpec, pool_basis) -> float:
     if spec.kind == "fixed":
-        return spec.value
-    if spec.kind == "pct_current_pool":
-        return spec.value * state.pool_basis_end(pool_basis)
-    if spec.kind == "pct_original_pool":
-        return spec.value * state.collat.original_balance
-    raise ValueError(spec.kind)
+        main = spec.value
+    elif spec.kind == "pct_current_pool":
+        main = spec.value * state.pool_basis_end(pool_basis)
+    elif spec.kind == "pct_original_pool":
+        main = spec.value * state.original_pool_basis(pool_basis)
+    else:
+        raise ValueError(spec.kind)
+
+    if spec.floor_kind == "none":
+        return main
+    if spec.floor_kind == "fixed":
+        floor = spec.floor_value
+    elif spec.floor_kind == "pct_original_pool":
+        floor = spec.floor_value * state.original_pool_basis(pool_basis)
+    else:
+        raise ValueError(spec.floor_kind)
+    return max(main, floor)
+
+
+def reserve_target(state: EngineState, name: str) -> float:
+    acct = state.reserves_by_name[name]
+    if acct.target_kind == "fixed":
+        return acct.target_value
+    if acct.target_kind == "pct_current_pool":
+        from ..models.common import PoolBalanceBasis
+
+        return acct.target_value * state.pool_basis_end(PoolBalanceBasis.TRUST)
+    if acct.target_kind == "pct_original_pool":
+        return acct.target_value * state.collat.original_balance
+    raise ValueError(acct.target_kind)
 
 
 def principal_due(state: EngineState, step: PayPrincipalStep, resolved: list[AllocationNode]) -> float:
@@ -51,12 +75,15 @@ def principal_due(state: EngineState, step: PayPrincipalStep, resolved: list[All
         pool_end = state.pool_basis_end(step.pool_basis)
         oc = target_oc_amount(state, step.target_oc, step.pool_basis)
         return max(0.0, total_bonds - (pool_end - oc))
-    if step.amount_rule == "priority_pda":  # Phase 2
+    if step.amount_rule == "priority_pda":
+        # cumulative tiers (First/Second/Third Allocations) come from
+        # consecutive steps with growing target sets: balances update between
+        # steps, so "minus prior allocations" is automatic
         target_bal = sum(
             state.bonds[cid].balance for node in resolved for cid in tree_class_ids(node)
         )
         pool_end = state.pool_basis_end(step.pool_basis)
         return max(0.0, target_bal - pool_end)
-    if step.amount_rule == "turbo":  # Phase 2
+    if step.amount_rule == "turbo":
         return state.funds.balance(step.source)
     raise ValueError(step.amount_rule)

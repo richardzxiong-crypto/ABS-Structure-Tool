@@ -1,0 +1,736 @@
+{
+  "schema_version": 1,
+  "id": "sfast-2026-1",
+  "name": "SFS Auto Receivables Securitization Trust 2026-1",
+  "num_periods": 75,
+  "dates": {
+    "closing_date": "2026-02-26",
+    "first_payment_date": "2026-03-20",
+    "business_day_adjust": "following"
+  },
+  "collateral": {
+    "asset_class": "amortizing_loan",
+    "replines": [
+      {
+        "id": "R1",
+        "balance": 17817.51,
+        "gross_rate": 0.040209999999999996,
+        "original_term": 51,
+        "remaining_term": 11
+      },
+      {
+        "id": "R2",
+        "balance": 131055.26,
+        "gross_rate": 0.0361,
+        "original_term": 45,
+        "remaining_term": 19
+      },
+      {
+        "id": "R3",
+        "balance": 3168681.51,
+        "gross_rate": 0.038900000000000004,
+        "original_term": 40,
+        "remaining_term": 33
+      },
+      {
+        "id": "R4",
+        "balance": 5032957.76,
+        "gross_rate": 0.04108,
+        "original_term": 51,
+        "remaining_term": 45
+      },
+      {
+        "id": "R5",
+        "balance": 228883494.39,
+        "gross_rate": 0.0039000000000000003,
+        "original_term": 60,
+        "remaining_term": 58
+      },
+      {
+        "id": "R6",
+        "balance": 483705433.89,
+        "gross_rate": 0.03206,
+        "original_term": 72,
+        "remaining_term": 70
+      },
+      {
+        "id": "R7",
+        "balance": 34046739.33,
+        "gross_rate": 0.05455,
+        "original_term": 83,
+        "remaining_term": 81
+      },
+      {
+        "id": "R8",
+        "balance": 3099.78,
+        "gross_rate": 0.06,
+        "original_term": 36,
+        "remaining_term": 6
+      },
+      {
+        "id": "R9",
+        "balance": 130076.16,
+        "gross_rate": 0.060410000000000005,
+        "original_term": 37,
+        "remaining_term": 20
+      },
+      {
+        "id": "R10",
+        "balance": 922641.06,
+        "gross_rate": 0.06042,
+        "original_term": 37,
+        "remaining_term": 33
+      },
+      {
+        "id": "R11",
+        "balance": 943112.5,
+        "gross_rate": 0.06056,
+        "original_term": 49,
+        "remaining_term": 46
+      },
+      {
+        "id": "R12",
+        "balance": 5759887.62,
+        "gross_rate": 0.060270000000000004,
+        "original_term": 60,
+        "remaining_term": 58
+      },
+      {
+        "id": "R13",
+        "balance": 23807408.16,
+        "gross_rate": 0.05979,
+        "original_term": 72,
+        "remaining_term": 70
+      },
+      {
+        "id": "R14",
+        "balance": 36570735.32,
+        "gross_rate": 0.06051,
+        "original_term": 83,
+        "remaining_term": 81
+      },
+      {
+        "id": "R15",
+        "balance": 18527.39,
+        "gross_rate": 0.07712,
+        "original_term": 29,
+        "remaining_term": 10
+      },
+      {
+        "id": "R16",
+        "balance": 488394.11,
+        "gross_rate": 0.07963,
+        "original_term": 58,
+        "remaining_term": 21
+      },
+      {
+        "id": "R17",
+        "balance": 4208748.98,
+        "gross_rate": 0.08421,
+        "original_term": 42,
+        "remaining_term": 33
+      },
+      {
+        "id": "R18",
+        "balance": 8604735.45,
+        "gross_rate": 0.08452,
+        "original_term": 53,
+        "remaining_term": 45
+      },
+      {
+        "id": "R19",
+        "balance": 40819026.77,
+        "gross_rate": 0.08578,
+        "original_term": 61,
+        "remaining_term": 58
+      },
+      {
+        "id": "R20",
+        "balance": 240626635.24,
+        "gross_rate": 0.09102,
+        "original_term": 72,
+        "remaining_term": 70
+      },
+      {
+        "id": "R21",
+        "balance": 516320999.23,
+        "gross_rate": 0.08664,
+        "original_term": 83,
+        "remaining_term": 81
+      }
+    ],
+    "servicing_fee_rate": 0.0,
+    "fee_basis": "trust"
+  },
+  "structure": {
+    "classes": [
+      {
+        "id": "A1",
+        "balance": 250000000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.03827
+        },
+        "day_count": "ACT/360"
+      },
+      {
+        "id": "A2A",
+        "balance": 250000000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.0391
+        },
+        "day_count": "30/360"
+      },
+      {
+        "id": "A2B",
+        "balance": 250000000,
+        "coupon": {
+          "type": "floating",
+          "index": "SOFR_NYF_30D",
+          "margin": 0.0046
+        },
+        "day_count": "ACT/360"
+      },
+      {
+        "id": "A3",
+        "balance": 500000000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.0396
+        },
+        "day_count": "30/360"
+      },
+      {
+        "id": "A4",
+        "balance": 119520000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.0407
+        },
+        "day_count": "30/360"
+      },
+      {
+        "id": "B",
+        "balance": 71880000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.0427
+        },
+        "day_count": "30/360"
+      },
+      {
+        "id": "C",
+        "balance": 58600000,
+        "coupon": {
+          "type": "fixed",
+          "rate": 0.0446
+        },
+        "day_count": "30/360"
+      }
+    ],
+    "allocation_tree": {
+      "type": "group",
+      "name": "notes",
+      "mode": "sequential",
+      "children": [
+        {
+          "type": "group",
+          "name": "classA",
+          "mode": "sequential",
+          "children": [
+            {
+              "type": "class",
+              "class_id": "A1"
+            },
+            {
+              "type": "group",
+              "name": "A2",
+              "mode": "pro_rata",
+              "children": [
+                {
+                  "type": "class",
+                  "class_id": "A2A"
+                },
+                {
+                  "type": "class",
+                  "class_id": "A2B"
+                }
+              ]
+            },
+            {
+              "type": "class",
+              "class_id": "A3"
+            },
+            {
+              "type": "class",
+              "class_id": "A4"
+            }
+          ]
+        },
+        {
+          "type": "class",
+          "class_id": "B"
+        },
+        {
+          "type": "class",
+          "class_id": "C"
+        }
+      ]
+    }
+  },
+  "fees": [
+    {
+      "name": "servicing",
+      "rate": 0.01,
+      "basis": "trust"
+    },
+    {
+      "name": "trustee",
+      "fixed": 1425.0
+    }
+  ],
+  "reserve_accounts": [
+    {
+      "name": "reserve",
+      "target_kind": "fixed",
+      "target_value": 3906253.028725,
+      "initial_balance": 3906253.028725
+    }
+  ],
+  "ysoc": {
+    "required_rate": 0.063,
+    "stepdown_rate": 0.058,
+    "stepdown_when_class_zero": "A2B",
+    "initial_amount": 71708995.93,
+    "basis": "trust"
+  },
+  "waterfall": {
+    "mode": "combined",
+    "waterfalls": [
+      {
+        "name": "priority of payments",
+        "steps": [
+          {
+            "id": "svc_fee",
+            "type": "pay_fees",
+            "source": "total_collections",
+            "label": "2nd: servicing fee",
+            "fees": [
+              "servicing"
+            ]
+          },
+          {
+            "id": "svc_fee_rsv",
+            "type": "pay_fees",
+            "source": "reserve:reserve",
+            "fees": [
+              "servicing"
+            ]
+          },
+          {
+            "id": "trustee_fee",
+            "type": "pay_fees",
+            "source": "total_collections",
+            "label": "3rd: trustee fees",
+            "fees": [
+              "trustee"
+            ]
+          },
+          {
+            "id": "trustee_fee_rsv",
+            "type": "pay_fees",
+            "source": "reserve:reserve",
+            "fees": [
+              "trustee"
+            ]
+          },
+          {
+            "id": "int_a",
+            "type": "pay_interest",
+            "source": "total_collections",
+            "label": "4th: class A interest",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "int_a_rsv",
+            "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "first_alloc",
+            "type": "pay_principal",
+            "source": "total_collections",
+            "label": "5th: First Allocation of Principal",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "first_alloc_rsv",
+            "type": "pay_principal",
+            "source": "reserve:reserve",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "int_b",
+            "type": "pay_interest",
+            "source": "total_collections",
+            "label": "6th: class B interest",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "int_b_rsv",
+            "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "second_alloc",
+            "type": "pay_principal",
+            "source": "total_collections",
+            "label": "7th: Second Allocation of Principal",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA",
+              "B"
+            ]
+          },
+          {
+            "id": "second_alloc_rsv",
+            "type": "pay_principal",
+            "source": "reserve:reserve",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA",
+              "B"
+            ]
+          },
+          {
+            "id": "int_c",
+            "type": "pay_interest",
+            "source": "total_collections",
+            "label": "8th: class C interest",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "int_c_rsv",
+            "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "third_alloc",
+            "type": "pay_principal",
+            "source": "total_collections",
+            "label": "9th: Third Allocation of Principal",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA",
+              "B",
+              "C"
+            ]
+          },
+          {
+            "id": "third_alloc_rsv",
+            "type": "pay_principal",
+            "source": "reserve:reserve",
+            "amount_rule": "priority_pda",
+            "pool_basis": "adjusted",
+            "targets": [
+              "classA",
+              "B",
+              "C"
+            ]
+          },
+          {
+            "id": "fund_rsv",
+            "type": "fund_reserve",
+            "source": "total_collections",
+            "label": "10th: replenish reserve",
+            "account": "reserve"
+          },
+          {
+            "id": "retire",
+            "type": "retire_bonds",
+            "source": "total_collections",
+            "label": "reserve-to-retire option",
+            "reserve": "reserve"
+          },
+          {
+            "id": "regular_alloc",
+            "type": "pay_principal",
+            "source": "total_collections",
+            "label": "11th: Regular Allocation of Principal",
+            "amount_rule": "regular_pda",
+            "pool_basis": "adjusted",
+            "target_oc": {
+              "kind": "pct_current_pool",
+              "value": 0.0675,
+              "floor_kind": "pct_original_pool",
+              "floor_value": 0.01
+            },
+            "targets": [
+              "notes"
+            ]
+          },
+          {
+            "id": "residual",
+            "type": "release_residual",
+            "source": "total_collections",
+            "label": "13th: to certificateholder",
+            "to": "CERT"
+          }
+        ]
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "scen1",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.014
+        },
+        "speed_type": "voluntary",
+        "speed_unit": "abs",
+        "prepay_base": "gross_of_defaults"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cdr",
+          "cdr": {
+            "type": "scalar",
+            "value": 0.0225
+          }
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.5
+        },
+        "charge_off_lag": 3,
+        "recovery_lag": 3,
+        "recovery_lag_from": "default",
+        "suppress_defaults_near_maturity": true
+      },
+      "recoveries_to": "principal",
+      "index_curves": {
+        "SOFR_NYF_30D": {
+          "type": "vector",
+          "values": [
+            0.0362221,
+            0.0362735,
+            0.0362732,
+            0.0362734,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.036273,
+            0.0362732,
+            0.0362735,
+            0.0362733,
+            0.0362724,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362733,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362733,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362734,
+            0.0362733,
+            0.0362732
+          ]
+        }
+      }
+    },
+    {
+      "name": "scen2",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.014
+        },
+        "speed_type": "voluntary",
+        "speed_unit": "abs",
+        "prepay_base": "gross_of_defaults"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cum_loss",
+          "cum_net_loss": 0.0225,
+          "timing": [
+            40,
+            35,
+            20,
+            5
+          ],
+          "timing_unit": "annual",
+          "timing_applies_to": "losses",
+          "method": "original_MDR",
+          "allocation": "pool"
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.5
+        },
+        "charge_off_lag": 3,
+        "recovery_lag": 3,
+        "recovery_lag_from": "default",
+        "suppress_defaults_near_maturity": true
+      },
+      "recoveries_to": "principal",
+      "index_curves": {
+        "SOFR_NYF_30D": {
+          "type": "vector",
+          "values": [
+            0.0362221,
+            0.0362735,
+            0.0362732,
+            0.0362734,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.036273,
+            0.0362732,
+            0.0362735,
+            0.0362733,
+            0.0362724,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362733,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362733,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362732,
+            0.0362734
+          ]
+        }
+      }
+    }
+  ]
+}

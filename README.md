@@ -27,34 +27,46 @@ Open http://localhost:5173, create a deal from the `auto_seq_2tranche`
 template (or open the example deal), edit replines / structure / waterfall /
 scenarios, and hit **Run**.
 
-## Engine concepts (Phase 1)
+## Engine concepts
 
 **Collateral** — level-pay amortizing replines with:
 - defaults via CDR vectors or cumulative-loss + timing curves
-  (`aggregate_MDR` / `original_MDR` conventions),
-- all-in vs voluntary prepay speeds (prepay base excludes defaulted balance),
+  (`aggregate_MDR` / `original_MDR`; per-period or annual timing; default or
+  loss-recognition timing; repline or pool-level dollar allocation),
+- all-in vs voluntary prepay speeds in CPR or ABS units, configurable prepay
+  base conventions,
 - a default → charge-off (lag) → recovery (lag) pipeline with distinct
   **performing** and **trust** balances,
+- dynamic YSOC (per-repline PV haircut at a required rate, with stepdown
+  strike and hard-coded closing amount) feeding an **adjusted** pool basis,
 - per-repline `collection_delay` / `funding_delay` trust-timeline mapping.
 
-**Structure** — bond classes plus a recursive **allocation tree**: named
-groups with payment modes (`sequential`, `pro_rata`; `target_balance` in
-Phase 2) nesting to arbitrary depth.
+**Structure** — bond classes (fixed or floating coupons; 30/360 and ACT day
+counts on a business-day-adjusted payment calendar) plus a recursive
+**allocation tree**: named groups with payment modes (`sequential`,
+`pro_rata`; `target_balance` planned) nesting to arbitrary depth.
 
 **Waterfall** — ordered steps, each `source → action → targets`:
-sources are named cash buckets; actions are registered handlers
-(`pay_fees`, `pay_interest`, `pay_interest_shortfall`, `pay_principal` with
-`collections`/`regular_pda` amount rules, `release_residual`); targets are
-classes or tree groups (listed order matters unless the tree says pro-rata).
+sources are named cash buckets including `reserve:<name>` accounts; actions
+are registered handlers (`pay_fees`, `pay_interest`,
+`pay_interest_shortfall`, `pay_principal` with `collections`/`regular_pda`/
+`priority_pda`/`turbo` amount rules, `fund_reserve`, `retire_bonds`,
+`release_residual`); targets are classes or tree groups (listed order
+matters unless the tree says pro-rata). Priority-PDA tiers
+(First/Second/Third Allocations) and target-OC floors are first-class.
 Every draw is logged to a flow audit table shown in the UI.
 
 **Extensibility** — config models + registries (`STEP_REGISTRY`,
 `TRIGGER_REGISTRY`, `ASSET_REGISTRY`): adding a step type or asset class is
 one module with a `@REGISTRY.register(...)` decorator.
 
-Phase 2+ (modeled, validation-gated): floating coupons, reserve accounts,
-external sources, triggers + step conditions, `target_balance` mode,
-`priority_pda`/`turbo`, YSOC, breakeven/matrix analytics.
+Planned (modeled, validation-gated): external sources, triggers + step
+conditions, `target_balance` mode, breakeven/matrix analytics.
+
+The `sfast-2026-1` golden case pins the engine against a full Intex CF run
+of a $1.5bn prime auto deal (7 classes, YSOC, reserve account, tiered PDAs,
+floating A2B) — both scenarios tie to sub-cent precision per period per
+class.
 
 ## Tests
 

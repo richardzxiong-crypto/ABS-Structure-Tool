@@ -9,6 +9,7 @@ dependencies = [
     "uvicorn>=0.30",
     "numpy>=1.26",
     "pandas>=2.2",
+    "python-dateutil>=2.9",
     "scipy>=1.13",
 ]
 

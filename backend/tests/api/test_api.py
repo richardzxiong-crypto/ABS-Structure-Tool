@@ -60,10 +60,11 @@ def test_validate_endpoint(client):
     r = client.post("/api/deals/validate", json=payload).json()
     assert r == {"valid": True, "runnable": True, "errors": []}
 
-    payload["waterfall"]["waterfalls"][1]["steps"][0]["amount_rule"] = "turbo"
+    payload["waterfall"]["waterfalls"][1]["steps"][0]["source"] = "external:swap"
     r = client.post("/api/deals/validate", json=payload).json()
     assert r["valid"] is True and r["runnable"] is False
 
+    payload["waterfall"]["waterfalls"][1]["steps"][0]["source"] = "principal_collections"
     payload["waterfall"]["waterfalls"][1]["steps"][0]["amount_rule"] = "bogus"
     r = client.post("/api/deals/validate", json=payload).json()
     assert r["valid"] is False

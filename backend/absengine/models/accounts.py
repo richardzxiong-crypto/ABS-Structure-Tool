@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from .common import PoolBalanceBasis
 
 
-class ReserveAccount(BaseModel):  # Phase 2
+class ReserveAccount(BaseModel):
     name: str
     target_kind: Literal["pct_current_pool", "pct_original_pool", "fixed"] = "fixed"
     target_value: float = 0.0
@@ -27,8 +27,27 @@ class FeeSpec(BaseModel):
     basis: PoolBalanceBasis = PoolBalanceBasis.TRUST
 
 
-class YsocConfig(BaseModel):  # Phase 2
+class YsocConfig(BaseModel):
+    """Yield supplement overcollateralization.
+
+    YSOA_t = sum over replines with gross_rate < required rate of
+    max(0, balance_t - PV(remaining level payments @ required rate)),
+    recomputed each period off the actual (post-default, post-prepay)
+    performing balances. The "adjusted" pool basis = basis balance - YSOA_t.
+
+    - initial_amount: hard-coded closing YSOA (e.g. the prospectus number,
+      computed loan-by-loan); period 1's adjusted balance = beginning basis
+      balance - initial_amount. All later periods are dynamic.
+    - stepdown_rate kicks in once `stepdown_when_class_zero` is fully paid
+      (checked on its beginning-of-period balance).
+    """
+
     required_rate: float = Field(ge=0)
-    method: Literal["dynamic", "static_schedule"] = "dynamic"
-    static_scaling: Literal["none", "pool_factor"] = "none"
-    basis: PoolBalanceBasis = PoolBalanceBasis.TRUST
+    stepdown_rate: float | None = Field(default=None, ge=0)
+    stepdown_when_class_zero: str | None = None
+    initial_amount: float | None = None
+    method: Literal["dynamic"] = "dynamic"
+    basis: PoolBalanceBasis = Field(
+        default=PoolBalanceBasis.TRUST,
+        description="which pool balance the YSOA is netted against",
+    )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from ..models.accounts import YsocConfig
 from ..models.collateral import CollateralPool
 from ..models.scenario import Scenario
 from ..registry import Registry
@@ -12,16 +13,25 @@ class AssetModel(Protocol):
     """A registered asset-class projection model."""
 
     def project(
-        self, pool: CollateralPool, scenario: Scenario, num_periods: int
+        self,
+        pool: CollateralPool,
+        scenario: Scenario,
+        num_periods: int,
+        ysoc: YsocConfig | None = None,
     ) -> CollateralCashflows: ...
 
 
 ASSET_REGISTRY = Registry("asset_classes")
 
 
-def project_pool(pool: CollateralPool, scenario: Scenario, num_periods: int) -> CollateralCashflows:
+def project_pool(
+    pool: CollateralPool,
+    scenario: Scenario,
+    num_periods: int,
+    ysoc: YsocConfig | None = None,
+) -> CollateralCashflows:
     handler = ASSET_REGISTRY.handler_for(_Keyed(pool.asset_class))
-    return handler.project(pool, scenario, num_periods)
+    return handler.project(pool, scenario, num_periods, ysoc)
 
 
 class _Keyed:

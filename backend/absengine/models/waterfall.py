@@ -42,16 +42,30 @@ class PayInterestShortfallStep(WaterfallStepBase):
 
 
 class TargetOCSpec(BaseModel):
+    """target OC = max(main amount, floor amount).
+
+    main:  kind/value (e.g. pct_current_pool 0.0675 on the step's pool basis)
+    floor: floor_kind/floor_value (e.g. pct_original_pool 0.01 - typical
+           "greater of x% of current and y% of initial" language). The
+           original-pool floor uses the period-1 beginning basis balance,
+           so on the adjusted basis it is net of the initial YSOA.
+    """
+
     kind: Literal["fixed", "pct_current_pool", "pct_original_pool"] = "fixed"
     value: float = 0.0
+    floor_kind: Literal["none", "fixed", "pct_original_pool"] = "none"
+    floor_value: float = 0.0
 
 
 class PayPrincipalStep(WaterfallStepBase):
     """amount_rule:
     - collections:   distribute the period's principal collections
     - regular_pda:   max(0, total bond balance - (pool balance - target_OC))
-    - priority_pda:  max(0, sum of target-class balances - pool balance)  (Phase 2)
-    - turbo:         all remaining cash in the source bucket               (Phase 2)
+    - priority_pda:  max(0, sum of target-class balances - pool balance);
+                     cumulative tiers (First/Second/Third Allocations) fall out
+                     of consecutive steps with growing target sets, since
+                     balances update between steps
+    - turbo:         all remaining cash in the source bucket
     """
 
     type: Literal["pay_principal"] = "pay_principal"
@@ -61,9 +75,25 @@ class PayPrincipalStep(WaterfallStepBase):
     pool_basis: PoolBalanceBasis = PoolBalanceBasis.TRUST
 
 
-class FundReserveStep(WaterfallStepBase):  # Phase 2
+class FundReserveStep(WaterfallStepBase):
     type: Literal["fund_reserve"] = "fund_reserve"
     account: str
+
+
+class RetireBondsStep(WaterfallStepBase):
+    """Optional "reserve to retire bonds": if source bucket + reserve balance
+    covers the total remaining bond balance, retire all classes (in allocation
+    tree seniority order), drawing the source first, then the reserve.
+    Otherwise a no-op. Place after all interest/fee clauses."""
+
+    type: Literal["retire_bonds"] = "retire_bonds"
+    reserve: str
+    release_reserve_remainder: bool = Field(
+        default=True,
+        description="once the notes are retired the reserve account closes: "
+        "any remaining balance is released into the source bucket (flowing to "
+        "the residual through the remaining steps)",
+    )
 
 
 class ReleaseResidualStep(WaterfallStepBase):
@@ -78,6 +108,7 @@ AnyStep = Annotated[
         PayInterestShortfallStep,
         PayPrincipalStep,
         FundReserveStep,
+        RetireBondsStep,
         ReleaseResidualStep,
     ],
     Field(discriminator="type"),
