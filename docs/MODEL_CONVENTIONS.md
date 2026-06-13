@@ -41,12 +41,13 @@ an Intex CF run (the `sfast-2026-1` golden case) and tie to sub-cent precision.
      **loss recognition (charge-offs)**, and defaults occur `charge_off_lag`
      earlier - with annual buckets, year 1's share spreads over its
      **feasible** charge-off months only (months `charge_off_lag+1`..12);
-   - `original_MDR`: `D_t = min(D*_t, balance)` - dollar defaults fixed
-     regardless of prepayments;
-   - `aggregate_MDR`: `D*` is first converted to a *rate* path on a
+   - `aggregate_MDR`: `D_t = min(D*_t, balance)` - dollar defaults fit
+     directly to the cum-loss target, so realized cumulative loss equals the
+     input regardless of prepay speed (the loss is "fit in");
+   - `original_MDR`: `D*` is first converted to a *rate* path fixed on a
      zero-prepay reference amortization (scheduled principal + defaults
      only), then that rate is applied to the actual balance - so faster
-     actual prepayments reduce realized losses below the input cum loss;
+     actual prepayments leave realized loss below the input cum loss (a gap);
    - `allocation: "pool"` *(Intex-style)*: the pool-level target dollars are
      allocated each period across surviving replines pro rata by performing
      balance (capped, overflow redistributed) - a matured repline's share

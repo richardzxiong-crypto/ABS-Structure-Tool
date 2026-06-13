@@ -641,7 +641,7 @@
           ],
           "timing_unit": "annual",
           "timing_applies_to": "losses",
-          "method": "original_MDR",
+          "method": "aggregate_MDR",
           "allocation": "pool"
         },
         "severity": {

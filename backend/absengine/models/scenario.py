@@ -65,11 +65,14 @@ class CumLossDefaults(BaseModel):
     """Cumulative net loss (% of original balance) distributed by a timing curve.
 
     method:
-    - aggregate_MDR: the timing curve is converted to an MDR path on a
-      zero-prepay reference amortization, then that *rate* path is applied to
-      the actual (aggregate) balance - faster actual runoff lowers realized loss.
-    - original_MDR: per-period default dollars are fixed off the original
-      balance (timing curve taken literally), capped at available balance.
+    - aggregate_MDR: per-period default dollars are fit directly to the
+      cum-loss target (cum_net_loss x timing x original balance, capped at
+      the available balance), so realized cumulative loss equals the input
+      regardless of prepay speed - the loss is "fit in".
+    - original_MDR: the timing curve is converted to an MDR *rate* path fixed
+      on a zero-prepay reference amortization, then applied to the actual
+      balance - faster actual runoff leaves realized loss below the input
+      (a small gap).
     """
 
     type: Literal["cum_loss"] = "cum_loss"
@@ -94,8 +97,8 @@ class CumLossDefaults(BaseModel):
         "dollars (a matured repline's share is lost); pool (Intex-style): the "
         "pool-level target dollars are allocated each period across surviving "
         "replines pro rata by performing balance, so the pool hits the target "
-        "as long as any balance remains. Pool allocation requires uniform "
-        "collection/funding delays across replines.",
+        "as long as any balance remains (aggregate_MDR). Pool allocation "
+        "requires uniform collection/funding delays across replines.",
     )
 
     @model_validator(mode="after")

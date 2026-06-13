@@ -153,9 +153,10 @@ def test_cum_loss_timing_hits_target(method):
     assert cf.pool["cum_net_loss"][-1] == pytest.approx(0.08 * 100_000, abs=1e-4)
 
 
-def test_aggregate_mdr_scales_down_with_prepays_original_does_not():
-    """With prepays, aggregate_MDR (a rate path on actual balance) realizes
-    less loss than the input; original_MDR keeps dollar defaults fixed."""
+def test_original_mdr_scales_down_with_prepays_aggregate_does_not():
+    """With prepays, original_MDR (a rate path fixed on the zero-prepay
+    reference) realizes less loss than the input; aggregate_MDR fits the
+    dollar defaults to the target regardless of prepay speed."""
     pool = make_pool()
     timing = [0.2, 0.3, 0.25, 0.15, 0.10]
     base = dict(cum_net_loss=0.08, timing=timing)
@@ -171,8 +172,8 @@ def test_aggregate_mdr_scales_down_with_prepays_original_does_not():
         )
         return project_pool(pool, scen, 12).pool["cum_net_loss"][-1]
 
-    assert run("original_MDR") == pytest.approx(0.08 * 100_000, abs=1e-4)
-    assert run("aggregate_MDR") < 0.08 * 100_000 - 100
+    assert run("aggregate_MDR") == pytest.approx(0.08 * 100_000, abs=1e-4)
+    assert run("original_MDR") < 0.08 * 100_000 - 100
 
 
 # ------------------------------------------------------------------ test 5

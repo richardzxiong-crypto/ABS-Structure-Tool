@@ -120,12 +120,13 @@ def ysoa_contribution(balance: float, monthly_rate: float, n_rem: int, required_
     return max(0.0, balance - pv)
 
 
-def _aggregate_mdr_path(
+def _reference_mdr_path(
     d_star: np.ndarray, rep: Repline, n: int, scenario: Scenario
 ) -> np.ndarray:
-    """Convert target default dollars to an MDR path on a zero-prepay reference
-    amortization. Applying this *rate* path to the actual balance is the
-    aggregate_MDR convention: faster actual runoff lowers realized loss."""
+    """Convert target default dollars to an MDR *rate* path fixed on a
+    zero-prepay reference amortization. Applying that rate to the actual
+    balance is the original_MDR convention: when the pool prepays faster than
+    the reference, realized loss falls below the input cum loss (a gap)."""
     mdr = np.zeros(n)
     p = rep.balance
     r = rep.gross_rate / 12.0
@@ -249,8 +250,9 @@ def _pool_default_dollars(
                 n_rem[i] -= 1
         return out, total_beg
 
-    if spec.method == "aggregate_MDR":
-        # rate path on the joint zero-prepay reference, applied to actual balances
+    if spec.method == "original_MDR":
+        # rate path fixed on the joint zero-prepay reference, applied to the
+        # actual (faster-amortizing) balances -> realized loss can fall short
         _, ref_beg = run(vol_on=False, pool_target_fn=lambda t, total: float(d_star[t]))
         mdr_ref = np.where(ref_beg > _EPS, np.minimum(d_star, ref_beg) / np.maximum(ref_beg, _EPS), 0.0)
         out, _ = run(vol_on=True, pool_target_fn=lambda t, total: float(mdr_ref[t]) * total)
@@ -285,7 +287,7 @@ def _project_repline(
             d_star = None
         elif isinstance(spec, CumLossDefaults):
             d_star = _target_dollar_defaults(spec, sev, rep.balance, rep_t, scenario.loss.charge_off_lag)
-            mdr_path = _aggregate_mdr_path(d_star, rep, rep_t, scenario) if spec.method == "aggregate_MDR" else None
+            mdr_path = _reference_mdr_path(d_star, rep, rep_t, scenario) if spec.method == "original_MDR" else None
         else:
             raise TypeError(f"unknown DefaultSpec {type(spec)}")
 
@@ -302,9 +304,9 @@ def _project_repline(
 
         # 1. defaults (move to pending charge-off; stop performing immediately)
         if mdr_path is not None:
-            d = beg * mdr_path[t]
+            d = beg * mdr_path[t]  # original_MDR: rate fixed off the reference schedule
         else:
-            d = min(d_star[t], beg)  # original_MDR: dollars fixed off original balance
+            d = min(d_star[t], beg)  # aggregate_MDR: dollars fit to the cum-loss target
         d = min(d, beg)
         if suppress and n_rem <= scenario.loss.charge_off_lag:
             d = 0.0

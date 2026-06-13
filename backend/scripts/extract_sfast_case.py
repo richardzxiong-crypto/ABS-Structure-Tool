@@ -183,13 +183,13 @@ def build_deal(wb) -> dict:
         "suppress_defaults_near_maturity": True,
     }
     scen2_loss = {
-        # the provided run takes the loss dollars literally off the original
-        # balance (realized CNL = input exactly) -> original_MDR convention;
-        # the timing curve positions loss recognition (charge-offs)
+        # the provided run fits the loss dollars to the cum-loss target
+        # (realized CNL = input exactly) -> aggregate_MDR convention, allocated
+        # at the pool level; the timing curve positions loss recognition
         "defaults": {"type": "cum_loss", "cum_net_loss": 0.0225,
                      "timing": [40, 35, 20, 5], "timing_unit": "annual",
                      "timing_applies_to": "losses",
-                     "method": "original_MDR", "allocation": "pool"},
+                     "method": "aggregate_MDR", "allocation": "pool"},
         "severity": {"type": "scalar", "value": 0.5},
         "charge_off_lag": 3, "recovery_lag": 3, "recovery_lag_from": "default",
         "suppress_defaults_near_maturity": True,

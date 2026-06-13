@@ -30,11 +30,12 @@ Intex conventions this case pinned (all opt-in flags, see
 stepdown strike applied in PDA formulas only (reported adjusted-balance
 column stays at the primary strike).
 
+scen2 uses `aggregate_MDR` (the engine's "fit the loss to the target"
+convention) with pool-level allocation, matching the workbook's "aggregate
+MDR" label: realized CNL equals the 2.25% input exactly.
+
 Known source-model artifacts (intentionally not replicated):
 
-- The workbook's "aggregate MDR" run realizes the input CNL exactly as
-  fixed dollars (no prepay interaction), i.e. it behaves as this engine's
-  `original_MDR` + pool allocation; the deal config uses that.
 - One period after the notes retire (p65 in both scenarios), the workbook
   shows a second $3,906,253.03 reserve withdrawal from an already-empty
   account, paying the certificateholder the reserve twice. The engine
