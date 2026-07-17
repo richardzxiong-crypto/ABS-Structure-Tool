@@ -73,6 +73,13 @@ export default function RunResultsPage() {
         <CashflowTable columns={res.bonds} />
       </div>
 
+      {Object.keys(res.accounts ?? {}).length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">Reserve account balances</h2>
+          <CashflowTable columns={res.accounts} />
+        </div>
+      )}
+
       <div className="card">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">
           Waterfall flow log (every draw: step → target, due vs paid)

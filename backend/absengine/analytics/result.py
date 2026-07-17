@@ -22,6 +22,7 @@ class DealRunResult:
     fees_paid: np.ndarray
     retained: np.ndarray
     seeded: np.ndarray
+    accounts: pd.DataFrame | None = None  # reserve balances, one row per (period, account)
     metrics: dict = field(default_factory=dict)
 
     def to_json_dict(self) -> dict:
@@ -36,5 +37,6 @@ class DealRunResult:
             "residual": self.residual.tolist(),
             "fees_paid": self.fees_paid.tolist(),
             "retained": self.retained.tolist(),
+            "accounts": _df_to_columns(self.accounts) if self.accounts is not None else {},
             "metrics": self.metrics,
         }

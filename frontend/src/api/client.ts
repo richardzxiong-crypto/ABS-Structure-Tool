@@ -25,10 +25,49 @@ export interface BondClass {
   id: string;
   name: string;
   balance: number;
-  coupon: { type: "fixed" | "floating"; rate?: number; index?: string; margin?: number };
-  day_count: string;
+  coupon: {
+    type: "fixed" | "floating";
+    rate?: number;
+    index?: string;
+    margin?: number;
+    cap?: number | null;
+    floor?: number | null;
+  };
+  day_count: "30/360" | "ACT/360" | "ACT/365";
   price: number | null;
 }
+
+export interface DealDates {
+  closing_date: string; // ISO yyyy-mm-dd
+  first_payment_date: string;
+  business_day_adjust: "none" | "following";
+}
+
+export interface FeeSpec {
+  name: string;
+  rate: number;
+  fixed: number;
+  basis: PoolBasis;
+}
+
+export interface ReserveAccount {
+  name: string;
+  target_kind: "pct_current_pool" | "pct_original_pool" | "fixed";
+  target_value: number;
+  floor: number;
+  initial_balance: number;
+}
+
+export interface YsocConfig {
+  required_rate: number;
+  stepdown_rate?: number | null;
+  stepdown_when_class_zero?: string | null;
+  initial_amount?: number | null;
+  method?: "dynamic";
+  basis: PoolBasis;
+}
+
+export type PoolBasis = "trust" | "performing" | "adjusted";
 
 export interface AllocationNode {
   type: "class" | "group";
@@ -39,6 +78,13 @@ export interface AllocationNode {
   pro_rata_basis?: "current" | "original";
 }
 
+export interface TargetOCSpec {
+  kind: "fixed" | "pct_current_pool" | "pct_original_pool";
+  value: number;
+  floor_kind?: "none" | "fixed" | "pct_original_pool";
+  floor_value?: number;
+}
+
 export interface WaterfallStep {
   type: string;
   id: string;
@@ -47,22 +93,40 @@ export interface WaterfallStep {
   fees?: string[];
   targets?: string[];
   amount_rule?: string;
-  target_oc?: { kind: string; value: number };
-  pool_basis?: string;
+  target_oc?: TargetOCSpec;
+  pool_basis?: PoolBasis;
+  account?: string; // fund_reserve
+  reserve?: string; // retire_bonds
+  release_reserve_remainder?: boolean;
   to?: string;
   [key: string]: unknown;
 }
 
+export interface CumLossDefaults {
+  type: "cum_loss";
+  cum_net_loss: number;
+  timing: number[];
+  timing_unit?: "period" | "annual";
+  timing_applies_to?: "defaults" | "losses";
+  method: "aggregate_MDR" | "original_MDR";
+  allocation?: "repline" | "pool";
+}
+
 export interface Scenario {
   name: string;
-  prepay: { speed: RateSpec; speed_type: "voluntary" | "all_in" };
+  prepay: {
+    speed: RateSpec;
+    speed_type: "voluntary" | "all_in";
+    speed_unit?: "cpr" | "abs";
+    prepay_base?: "net_of_defaults" | "gross_of_defaults";
+  };
   loss: {
-    defaults:
-      | { type: "cdr"; cdr: RateSpec }
-      | { type: "cum_loss"; cum_net_loss: number; timing: number[]; method: string };
+    defaults: { type: "cdr"; cdr: RateSpec } | CumLossDefaults;
     severity: RateSpec;
     charge_off_lag: number;
     recovery_lag: number;
+    recovery_lag_from?: "charge_off" | "default";
+    suppress_defaults_near_maturity?: boolean;
   };
   recoveries_to: "principal" | "interest";
   index_curves?: Record<string, RateSpec>;
@@ -74,6 +138,7 @@ export interface Deal {
   name: string;
   description: string;
   num_periods: number;
+  dates?: DealDates | null;
   collateral: {
     asset_class: string;
     replines: Repline[];
@@ -81,9 +146,9 @@ export interface Deal {
     fee_basis: string;
   };
   structure: { classes: BondClass[]; allocation_tree: AllocationNode };
-  fees: { name: string; rate: number; fixed: number; basis: string }[];
-  reserve_accounts: unknown[];
-  ysoc: unknown | null;
+  fees: FeeSpec[];
+  reserve_accounts: ReserveAccount[];
+  ysoc: YsocConfig | null;
   waterfall: { mode: "split" | "combined"; waterfalls: { name: string; steps: WaterfallStep[] }[] };
   triggers: unknown[];
   scenarios: Scenario[];
@@ -107,6 +172,7 @@ export interface RunResult {
   residual: number[];
   fees_paid: number[];
   retained: number[];
+  accounts: Record<string, (number | string)[]>;
   metrics: {
     bonds: Record<
       string,

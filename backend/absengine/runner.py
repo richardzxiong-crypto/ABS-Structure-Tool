@@ -102,5 +102,6 @@ def run_deal(deal: Deal, scenario: Scenario | str | None = None) -> DealRunResul
         fees_paid=wf.fees_paid,
         retained=wf.retained,
         seeded=wf.seeded,
+        accounts=wf.accounts,
         metrics=metrics,
     )

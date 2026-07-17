@@ -23,9 +23,10 @@ make test    # backend test suite (golden + invariants + unit + API)
 make dev     # FastAPI on :8000, Vite on :5173
 ```
 
-Open http://localhost:5173, create a deal from the `auto_seq_2tranche`
-template (or open the example deal), edit replines / structure / waterfall /
-scenarios, and hit **Run**.
+Open http://localhost:5173, open the `sfast-2026-1` deal (the golden-verified
+SFAST 2026-1 auto deal) or create one from the `auto_seq_2tranche` template,
+edit deal settings (dates / fees / reserve / YSOC), replines, structure,
+waterfall, and scenarios, and hit **Run**.
 
 ## Engine concepts
 

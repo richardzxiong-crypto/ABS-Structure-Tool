@@ -4,12 +4,13 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { api } from "../api/client";
 import ReplineGrid from "../components/collateral/ReplineGrid";
+import DealSettings from "../components/deal/DealSettings";
 import ScenarioEditor from "../components/scenarios/ScenarioEditor";
 import BondClassGrid from "../components/structure/BondClassGrid";
 import WaterfallEditor from "../components/waterfall/WaterfallEditor";
 import { useDealEditor } from "../store/dealEditor";
 
-const TABS = ["Collateral", "Structure", "Waterfall", "Scenarios"] as const;
+const TABS = ["Deal", "Collateral", "Structure", "Waterfall", "Scenarios"] as const;
 
 export default function DealEditorPage() {
   const { dealId = "" } = useParams();
@@ -101,6 +102,7 @@ export default function DealEditorPage() {
         ))}
       </div>
 
+      {tab === "Deal" && <DealSettings deal={deal} update={update} />}
       {tab === "Collateral" && <ReplineGrid deal={deal} update={update} />}
       {tab === "Structure" && <BondClassGrid deal={deal} update={update} />}
       {tab === "Waterfall" && <WaterfallEditor deal={deal} update={update} />}
