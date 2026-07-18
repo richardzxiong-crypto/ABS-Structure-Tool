@@ -17,6 +17,14 @@ resulting bond cashflows.
 
 ## Quick start
 
+**One-click (non-technical):** after cloning, double-click `run.command`
+(macOS) or `run.bat` (Windows), or run `./run.sh` (Linux/macOS terminal).
+It installs/refreshes everything, starts both servers, and opens the app in
+your browser — safe to re-run after every `git pull`. Prerequisites: Python
+3.11+ and Node 18+ on your PATH.
+
+**Developer workflow:**
+
 ```bash
 make setup   # uv venv + backend deps, npm install
 make test    # backend test suite (golden + invariants + unit + API)
