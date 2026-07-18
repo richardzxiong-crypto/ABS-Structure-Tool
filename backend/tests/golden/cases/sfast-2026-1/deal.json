@@ -363,6 +363,23 @@
             ]
           },
           {
+            "id": "int_a_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "int_a_sf_rsv",
+            "type": "pay_interest_shortfall",
+            "source": "reserve:reserve",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
             "id": "first_alloc",
             "type": "pay_principal",
             "source": "total_collections",
@@ -395,6 +412,23 @@
           {
             "id": "int_b_rsv",
             "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "int_b_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "int_b_sf_rsv",
+            "type": "pay_interest_shortfall",
             "source": "reserve:reserve",
             "targets": [
               "B"
@@ -435,6 +469,23 @@
           {
             "id": "int_c_rsv",
             "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "int_c_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "int_c_sf_rsv",
+            "type": "pay_interest_shortfall",
             "source": "reserve:reserve",
             "targets": [
               "C"

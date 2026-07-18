@@ -363,6 +363,23 @@
             ]
           },
           {
+            "id": "int_a_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
+            "id": "int_a_sf_rsv",
+            "type": "pay_interest_shortfall",
+            "source": "reserve:reserve",
+            "targets": [
+              "classA"
+            ]
+          },
+          {
             "id": "first_alloc",
             "type": "pay_principal",
             "source": "total_collections",
@@ -395,6 +412,23 @@
           {
             "id": "int_b_rsv",
             "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "int_b_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "B"
+            ]
+          },
+          {
+            "id": "int_b_sf_rsv",
+            "type": "pay_interest_shortfall",
             "source": "reserve:reserve",
             "targets": [
               "B"
@@ -435,6 +469,23 @@
           {
             "id": "int_c_rsv",
             "type": "pay_interest",
+            "source": "reserve:reserve",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "int_c_sf",
+            "type": "pay_interest_shortfall",
+            "source": "total_collections",
+            "label": "carried unpaid interest",
+            "targets": [
+              "C"
+            ]
+          },
+          {
+            "id": "int_c_sf_rsv",
+            "type": "pay_interest_shortfall",
             "source": "reserve:reserve",
             "targets": [
               "C"
@@ -728,6 +779,123 @@
             0.0362732,
             0.0362732,
             0.0362734
+          ]
+        }
+      }
+    },
+    {
+      "name": "stress",
+      "prepay": {
+        "speed": {
+          "type": "scalar",
+          "value": 0.008
+        },
+        "speed_type": "voluntary",
+        "speed_unit": "abs",
+        "prepay_base": "gross_of_defaults"
+      },
+      "loss": {
+        "defaults": {
+          "type": "cum_loss",
+          "cum_net_loss": 0.2,
+          "timing": [
+            40,
+            35,
+            20,
+            5
+          ],
+          "timing_unit": "annual",
+          "timing_applies_to": "losses",
+          "method": "aggregate_MDR",
+          "allocation": "pool"
+        },
+        "severity": {
+          "type": "scalar",
+          "value": 0.55
+        },
+        "charge_off_lag": 3,
+        "recovery_lag": 3,
+        "recovery_lag_from": "default",
+        "suppress_defaults_near_maturity": true
+      },
+      "recoveries_to": "principal",
+      "index_curves": {
+        "SOFR_NYF_30D": {
+          "type": "vector",
+          "values": [
+            0.0362221,
+            0.0362735,
+            0.0362732,
+            0.0362734,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362734,
+            0.0362728,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.036273,
+            0.0362732,
+            0.0362735,
+            0.0362733,
+            0.0362724,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362733,
+            0.0362732,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362733,
+            0.0362735,
+            0.0362732,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362733,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362735,
+            0.0362732,
+            0.036273,
+            0.0362734,
+            0.0362732,
+            0.0362732,
+            0.0362734,
+            0.0362734,
+            0.0362733,
+            0.0362732
           ]
         }
       }
