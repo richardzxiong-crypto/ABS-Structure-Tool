@@ -75,6 +75,9 @@ export default function DealEditorPage() {
           <button className="btn" onClick={() => save.mutate()} disabled={!dirty || save.isPending}>
             Save
           </button>
+          <button className="btn" onClick={() => navigate(`/deals/${dealId}/analytics/${scenario}`)}>
+            Analytics
+          </button>
           <button className="btn-primary" onClick={() => run.mutate()} disabled={run.isPending}>
             {run.isPending ? "Running…" : "Run ▶"}
           </button>

@@ -26,7 +26,10 @@ export default function RunResultsPage() {
         <h1 className="text-xl font-semibold text-slate-800">
           {dealId} · <span className="text-slate-500">{res.scenario_name}</span>
         </h1>
-        <Link to={`/deals/${dealId}`} className="btn">← Back to editor</Link>
+        <div className="flex gap-2">
+          <Link to={`/deals/${dealId}/analytics/${scenario}`} className="btn">Analytics →</Link>
+          <Link to={`/deals/${dealId}`} className="btn">← Back to editor</Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

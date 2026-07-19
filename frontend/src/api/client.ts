@@ -223,4 +223,48 @@ export const api = {
     }),
   runDeal: (id: string, scenario: string) =>
     http<RunResult>(`/api/deals/${id}/run`, { method: "POST", body: JSON.stringify({ scenario }) }),
+  breakeven: (id: string, scenario: string) =>
+    http<BreakevenResult>(`/api/deals/${id}/analytics/breakeven`, {
+      method: "POST",
+      body: JSON.stringify({ scenario }),
+    }),
+  matrix: (id: string, scenario: string, prepay_mults?: number[], loss_mults?: number[]) =>
+    http<MatrixResult>(`/api/deals/${id}/analytics/matrix`, {
+      method: "POST",
+      body: JSON.stringify({ scenario, prepay_mults, loss_mults }),
+    }),
+  priceYield: (id: string, scenario: string, prices?: number[]) =>
+    http<PriceYieldResult>(`/api/deals/${id}/analytics/price-yield`, {
+      method: "POST",
+      body: JSON.stringify({ scenario, prices }),
+    }),
 };
+
+export interface BreakevenResult {
+  dial: "cnl_level" | "cdr_multiplier";
+  base: number;
+  cap: number;
+  runs: number;
+  classes: Record<string, { writedown: number | null; interest_shortfall: number | null }>;
+}
+
+export interface MatrixCell {
+  prepay_mult: number;
+  loss_mult: number;
+  pool_cnl_pct: number;
+  classes: Record<string, { wal_years: number | null; yield: number | null; writedown: number }>;
+}
+
+export interface MatrixResult {
+  scenario: string;
+  prepay_mults: number[];
+  loss_mults: number[];
+  class_ids: string[];
+  cells: MatrixCell[][];
+}
+
+export interface PriceYieldResult {
+  scenario: string;
+  prices: number[];
+  classes: Record<string, { wal_years: number | null; yields: Record<string, number | null> }>;
+}

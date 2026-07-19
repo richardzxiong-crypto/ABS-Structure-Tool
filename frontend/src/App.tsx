@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 
+import AnalyticsPage from "./pages/AnalyticsPage";
 import DealEditorPage from "./pages/DealEditorPage";
 import DealLibraryPage from "./pages/DealLibraryPage";
 import RunResultsPage from "./pages/RunResultsPage";
@@ -17,6 +18,8 @@ export default function App() {
           <Route path="/" element={<DealLibraryPage />} />
           <Route path="/deals/:dealId" element={<DealEditorPage />} />
           <Route path="/deals/:dealId/results/:scenario" element={<RunResultsPage />} />
+          <Route path="/deals/:dealId/analytics" element={<AnalyticsPage />} />
+          <Route path="/deals/:dealId/analytics/:scenario" element={<AnalyticsPage />} />
         </Routes>
       </main>
     </div>

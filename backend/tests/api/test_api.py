@@ -74,3 +74,22 @@ def test_meta_endpoints(client):
     types = client.get("/api/meta/step-types").json()["types"]
     assert "pay_principal" in types and "pay_interest" in types
     assert "amortizing_loan" in client.get("/api/meta/asset-classes").json()["types"]
+
+
+def test_analytics_endpoints(client):
+    payload = make_deal().model_dump(mode="json")
+    client.post("/api/deals", json=payload)
+    try:
+        be = client.post(f"/api/deals/{payload['id']}/analytics/breakeven", json={}).json()
+        assert "classes" in be and "A" in be["classes"]
+        mx = client.post(
+            f"/api/deals/{payload['id']}/analytics/matrix",
+            json={"prepay_mults": [1.0], "loss_mults": [1.0]},
+        ).json()
+        assert len(mx["cells"]) == 1
+        py = client.post(
+            f"/api/deals/{payload['id']}/analytics/price-yield", json={"prices": [100.0]}
+        ).json()
+        assert "100.0" in py["classes"]["A"]["yields"]
+    finally:
+        client.delete(f"/api/deals/{payload['id']}")
