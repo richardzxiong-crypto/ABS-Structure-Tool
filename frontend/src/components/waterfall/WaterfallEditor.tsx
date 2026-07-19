@@ -268,6 +268,28 @@ function StepRow({
         </div>
       )}
 
+      {deal.triggers.length > 0 && (
+        <div>
+          <label className="label">Condition</label>
+          <select className="input w-44"
+            value={step.condition ? `${step.condition.trigger}|${step.condition.when}` : ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) set({ condition: null });
+              else {
+                const [trigger, when] = v.split("|");
+                set({ condition: { trigger, when: when as "pass" | "fail" } });
+              }
+            }}>
+            <option value="">always</option>
+            {deal.triggers.flatMap((t) => [
+              <option key={`${t.name}|pass`} value={`${t.name}|pass`}>if {t.name} passes</option>,
+              <option key={`${t.name}|fail`} value={`${t.name}|fail`}>if {t.name} fails</option>,
+            ])}
+          </select>
+        </div>
+      )}
+
       <div className="grow">
         <label className="label">Label</label>
         <input className="input" value={step.label}

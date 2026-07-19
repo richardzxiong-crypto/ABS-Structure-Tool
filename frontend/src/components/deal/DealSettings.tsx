@@ -1,4 +1,4 @@
-import type { Deal, FeeSpec, ReserveAccount } from "../../api/client";
+import type { Deal, FeeSpec, ReserveAccount, Trigger } from "../../api/client";
 
 interface Props {
   deal: Deal;
@@ -16,6 +16,112 @@ export default function DealSettings({ deal, update }: Props) {
         <ReservesCard deal={deal} update={update} />
       </div>
       <YsocCard deal={deal} update={update} />
+      <TriggersCard deal={deal} update={update} />
+    </div>
+  );
+}
+
+const TRIGGER_TYPES = ["cum_net_loss", "pool_factor", "oc_test", "ic_test"] as const;
+const OPERATORS = ["<", "<=", ">", ">="] as const;
+
+function TriggersCard({ deal, update }: Props) {
+  return (
+    <div className="card space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-700">
+          Triggers (waterfall steps can be conditioned on pass / fail)
+        </h2>
+        <button className="btn"
+          onClick={() =>
+            update((d) => {
+              d.triggers.push({
+                type: "cum_net_loss", name: `trigger_${d.triggers.length + 1}`,
+                curable: true, operator: "<=", schedule: [],
+              });
+            })
+          }>
+          + Add
+        </button>
+      </div>
+      {deal.triggers.length === 0 && (
+        <p className="text-xs text-slate-500">
+          No triggers. Add one (e.g. a cumulative-net-loss test) and reference it from a
+          waterfall step's condition to model pro-rata → sequential switches or cash traps.
+        </p>
+      )}
+      {deal.triggers.map((t: Trigger, i) => (
+        <div key={i} className="flex flex-wrap items-end gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+          <div>
+            <label className="label">Name</label>
+            <input className="input w-32" value={t.name}
+              onChange={(e) => update((d) => { d.triggers[i].name = e.target.value; })} />
+          </div>
+          <div>
+            <label className="label">Type</label>
+            <select className="input w-36" value={t.type}
+              onChange={(e) =>
+                update((d) => {
+                  const type = e.target.value as Trigger["type"];
+                  d.triggers[i] = type === "cum_net_loss"
+                    ? { type, name: t.name, curable: t.curable, operator: "<=", schedule: [] }
+                    : { type, name: t.name, curable: t.curable,
+                        operator: type === "pool_factor" ? ">" : ">=",
+                        threshold: 0, ...(type !== "ic_test" ? { basis: "trust" as const } : {}) };
+                })
+              }>
+              {TRIGGER_TYPES.map((k) => <option key={k}>{k}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Passes when measured is</label>
+            <select className="input w-20" value={t.operator ?? "<="}
+              onChange={(e) => update((d) => { d.triggers[i].operator = e.target.value as Trigger["operator"]; })}>
+              {OPERATORS.map((o) => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          {t.type === "cum_net_loss" ? (
+            <div>
+              <label className="label">Schedule (period:threshold, comma-sep)</label>
+              <input className="input w-64 font-mono text-xs"
+                value={(t.schedule ?? []).map(([p, v]) => `${p}:${v}`).join(", ")}
+                onChange={(e) =>
+                  update((d) => {
+                    d.triggers[i].schedule = e.target.value
+                      .split(",").map((x) => x.trim()).filter(Boolean)
+                      .map((pair) => {
+                        const [p, v] = pair.split(":");
+                        return [Number(p), Number(v)] as [number, number];
+                      })
+                      .filter(([p, v]) => !Number.isNaN(p) && !Number.isNaN(v));
+                  })
+                }
+                placeholder="12:0.02, 24:0.045" />
+            </div>
+          ) : (
+            <div>
+              <label className="label">Threshold</label>
+              <input className="input w-24" type="number" step="0.01" value={t.threshold ?? 0}
+                onChange={(e) => update((d) => { d.triggers[i].threshold = Number(e.target.value); })} />
+            </div>
+          )}
+          {(t.type === "pool_factor" || t.type === "oc_test") && (
+            <div>
+              <label className="label">Basis</label>
+              <select className="input w-28" value={t.basis ?? "trust"}
+                onChange={(e) => update((d) => { d.triggers[i].basis = e.target.value as Trigger["basis"]; })}>
+                {BASES.map((b) => <option key={b}>{b}</option>)}
+              </select>
+            </div>
+          )}
+          <label className="flex items-center gap-1 pb-2 text-xs text-slate-600">
+            <input type="checkbox" checked={t.curable}
+              onChange={(e) => update((d) => { d.triggers[i].curable = e.target.checked; })} />
+            curable
+          </label>
+          <button className="btn-ghost text-red-600"
+            onClick={() => update((d) => { d.triggers.splice(i, 1); })}>✕</button>
+        </div>
+      ))}
     </div>
   );
 }

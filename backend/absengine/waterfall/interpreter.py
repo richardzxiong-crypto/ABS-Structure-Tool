@@ -17,11 +17,30 @@ from ..models.common import DayCount, PoolBalanceBasis
 from ..models.deal import Deal, tree_seniority_order
 from ..models.scenario import Scenario
 from ..models.structure import FixedCoupon, FloatingCoupon
+from ..models.waterfall import StepCondition
 from ..scenarios.expand import expand
+from ..triggers import TRIGGER_REGISTRY, TriggerState
 from .state import AvailableFunds, BondState, EngineState, FlowRecord
 from .steps import STEP_REGISTRY
 
 _EPS = 1e-9
+
+_OPS = {
+    "<": lambda a, b: a < b,
+    "<=": lambda a, b: a <= b,
+    ">": lambda a, b: a > b,
+    ">=": lambda a, b: a >= b,
+}
+
+
+def _cmp(measured: float, op: str, threshold: float) -> bool:
+    return _OPS[op](measured, threshold)
+
+
+def _condition_met(cond: StepCondition, states: dict[str, TriggerState]) -> bool:
+    st = states[cond.trigger]
+    passing = st in (TriggerState.PASSING, TriggerState.CURED)
+    return passing if cond.when == "pass" else not passing
 
 
 @dataclass
@@ -33,6 +52,7 @@ class WaterfallOutput:
     retained: np.ndarray  # cash left in buckets after all steps (per period)
     seeded: np.ndarray
     accounts: pd.DataFrame  # reserve balances, one row per (period, account)
+    triggers: pd.DataFrame  # one row per (period, trigger): measured/threshold/state
     ysoa: np.ndarray  # realized (strike-selected) YSOA per period
     adjusted_pool: np.ndarray  # realized adjusted pool balance per period
 
@@ -86,11 +106,13 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
 
     state = EngineState(deal=deal, scenario=scenario, collat=collat, bonds=bonds)
     state.accounts = {r.name: r.initial_balance for r in deal.reserve_accounts}
+    state.trigger_states = {trig.name: TriggerState.PASSING for trig in deal.triggers}
     int_coll = collat.interest_collections()
     prin_coll = collat.principal_collections(scenario.recoveries_to)
 
     bond_rows: list[dict] = []
     account_rows: list[dict] = []
+    trigger_rows: list[dict] = []
     residual = np.zeros(num_periods)
     fees_paid = np.zeros(num_periods)
     retained = np.zeros(num_periods)
@@ -126,6 +148,25 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
             b.shortfall_paid_p = 0.0
             b.prin_paid_p = 0.0
 
+        # evaluate triggers (determination precedes distribution); the
+        # interpreter owns the cure/latch state machine
+        for trig in deal.triggers:
+            res = TRIGGER_REGISTRY.handler_for(trig).measure(trig, state)
+            measured, threshold = res if res is not None else (None, None)
+            passes = res is None or _cmp(measured, trig.operator, threshold)
+            prev = state.trigger_states[trig.name]
+            if prev == TriggerState.PERMANENTLY_FAILED:
+                new = prev
+            elif passes:
+                new = TriggerState.PASSING if prev == TriggerState.PASSING else TriggerState.CURED
+            else:
+                new = TriggerState.FAILING if trig.curable else TriggerState.PERMANENTLY_FAILED
+            state.trigger_states[trig.name] = new
+            trigger_rows.append({
+                "period": t, "trigger": trig.name, "measured": measured,
+                "threshold": threshold, "state": new.value,
+            })
+
         # seed funds buckets
         if deal.waterfall.mode == "combined":
             state.funds.seed("total_collections", float(int_coll[t - 1]) + float(prin_coll[t - 1]))
@@ -136,10 +177,16 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
             state.funds.seed(f"reserve:{name}", bal)
         seeded[t - 1] = sum(state.funds.seeded.values())
 
-        # execute waterfalls in order (Phase 2: trigger conditions skip steps)
+        # execute waterfalls in order; a step with a condition runs only when
+        # its trigger's state matches (pass = passing/cured, fail = failing/
+        # permanently_failed)
         for wf in deal.waterfall.waterfalls:
             state.current_waterfall = wf.name
             for step in wf.steps:
+                if step.condition is not None and not _condition_met(
+                    step.condition, state.trigger_states
+                ):
+                    continue
                 STEP_REGISTRY.handler_for(step).execute(step, state)
 
         # reserve accounts carry whatever is left in their buckets
@@ -195,6 +242,9 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
         retained=retained,
         seeded=seeded,
         accounts=pd.DataFrame(account_rows, columns=["period", "account", "balance"]),
+        triggers=pd.DataFrame(
+            trigger_rows, columns=["period", "trigger", "measured", "threshold", "state"]
+        ),
         ysoa=ysoa_used,
         adjusted_pool=adjusted_used,
     )

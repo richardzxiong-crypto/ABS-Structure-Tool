@@ -155,6 +155,27 @@ Funding delay 1: everything shifts one trust period later (trust period 1 empty)
 - Final period: any remaining bond balance becomes a writedown, applied in
   reverse seniority (depth-first allocation-tree leaf order).
 
+## Triggers & step conditions
+
+- Triggers are evaluated at **determination** - period start, after bond
+  interest accrual, before any distribution. A trigger *passes* when
+  `measured OPERATOR threshold` holds.
+- Measurements: `cum_net_loss` = realized cum loss through the period /
+  original balance vs a stepped schedule (the last entry with period <= t
+  applies; before the first entry there is no test, which counts as
+  passing); `pool_factor` = beginning basis balance / original;
+  `oc_test` = beginning basis balance / total beginning bond balance;
+  `ic_test` = the period's interest collections / total bond interest
+  accrued. Delinquency triggers are modeled but rejected (no delinquency
+  state in the collateral engine yet).
+- State machine: PASSING → FAILING on a failed test; a `curable` trigger
+  returns to CURED (functionally passing) when the test passes again; a
+  non-curable trigger latches PERMANENTLY_FAILED forever.
+- A step with `condition: {trigger, when}` runs only when the trigger's
+  state matches: `when: "pass"` = PASSING/CURED, `when: "fail"` =
+  FAILING/PERMANENTLY_FAILED. Skipped steps draw nothing (they do not
+  appear in the flow log for that period).
+
 ## Metrics
 
 - WAL (years) = `Σ(prin_t × t) / Σ(prin_t) / 12` over principal actually

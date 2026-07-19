@@ -83,6 +83,15 @@ export default function RunResultsPage() {
         </div>
       )}
 
+      {Object.keys(res.triggers ?? {}).length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">
+            Trigger states (measured vs threshold, per determination)
+          </h2>
+          <CashflowTable columns={res.triggers} />
+        </div>
+      )}
+
       <div className="card">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">
           Waterfall flow log (every draw: step → target, due vs paid)

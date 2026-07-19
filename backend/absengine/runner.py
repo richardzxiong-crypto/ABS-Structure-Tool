@@ -41,12 +41,14 @@ def check_supported(deal: Deal) -> None:
 
     for wf in deal.waterfall.waterfalls:
         for step in wf.steps:
-            if step.condition is not None:
-                raise UnsupportedFeatureError(f"step {step.id}: trigger conditions are not implemented yet")
             if step.source.startswith("external:"):
                 raise UnsupportedFeatureError(f"step {step.id}: external sources are not implemented yet")
-    if deal.triggers:
-        raise UnsupportedFeatureError("trigger evaluation is not implemented yet")
+    for trig in deal.triggers:
+        if trig.type == "delinquency":
+            raise UnsupportedFeatureError(
+                f"trigger {trig.name!r}: delinquency triggers need delinquency "
+                f"modeling in the collateral engine (not implemented yet)"
+            )
 
 
 # backwards-compatible alias (tests / older callers)
@@ -103,5 +105,6 @@ def run_deal(deal: Deal, scenario: Scenario | str | None = None) -> DealRunResul
         retained=wf.retained,
         seeded=wf.seeded,
         accounts=wf.accounts,
+        triggers=wf.triggers,
         metrics=metrics,
     )

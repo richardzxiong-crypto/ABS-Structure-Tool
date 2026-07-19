@@ -69,8 +69,16 @@ Every draw is logged to a flow audit table shown in the UI.
 `TRIGGER_REGISTRY`, `ASSET_REGISTRY`): adding a step type or asset class is
 one module with a `@REGISTRY.register(...)` decorator.
 
-Planned (modeled, validation-gated): external sources, triggers + step
-conditions, `target_balance` mode, breakeven/matrix analytics.
+**Triggers** — cum-net-loss / pool-factor / OC / IC tests with a
+curable-vs-latching state machine, evaluated at determination; any waterfall
+step can be conditioned on pass/fail (pro-rata → sequential switches, cash
+traps).
+
+**Analytics** — per-class loss breakevens (principal + timely-interest, CNL
+or CDR dial), prepay × loss sensitivity matrices, price/yield tables.
+
+Planned (modeled, validation-gated): external sources, delinquency
+triggers, `target_balance` mode.
 
 The `sfast-2026-1` golden case pins the engine against a full Intex CF run
 of a $1.5bn prime auto deal (7 classes, YSOC, reserve account, tiered PDAs,

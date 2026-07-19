@@ -69,6 +69,21 @@ export interface YsocConfig {
 
 export type PoolBasis = "trust" | "performing" | "adjusted";
 
+export interface Trigger {
+  type: "cum_net_loss" | "delinquency" | "pool_factor" | "oc_test" | "ic_test";
+  name: string;
+  curable: boolean;
+  operator?: "<" | "<=" | ">" | ">=";
+  threshold?: number;
+  schedule?: [number, number][];
+  basis?: PoolBasis;
+}
+
+export interface StepCondition {
+  trigger: string;
+  when: "pass" | "fail";
+}
+
 export interface AllocationNode {
   type: "class" | "group";
   class_id?: string;
@@ -99,6 +114,7 @@ export interface WaterfallStep {
   reserve?: string; // retire_bonds
   release_reserve_remainder?: boolean;
   to?: string;
+  condition?: StepCondition | null;
   [key: string]: unknown;
 }
 
@@ -150,7 +166,7 @@ export interface Deal {
   reserve_accounts: ReserveAccount[];
   ysoc: YsocConfig | null;
   waterfall: { mode: "split" | "combined"; waterfalls: { name: string; steps: WaterfallStep[] }[] };
-  triggers: unknown[];
+  triggers: Trigger[];
   scenarios: Scenario[];
 }
 
@@ -173,6 +189,7 @@ export interface RunResult {
   fees_paid: number[];
   retained: number[];
   accounts: Record<string, (number | string)[]>;
+  triggers: Record<string, (number | string | null)[]>;
   metrics: {
     bonds: Record<
       string,

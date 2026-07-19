@@ -82,6 +82,7 @@ class EngineState:
     funds: AvailableFunds = field(default_factory=AvailableFunds)
     flows: list[FlowRecord] = field(default_factory=list)
     accounts: dict[str, float] = field(default_factory=dict)  # reserve balances
+    trigger_states: dict = field(default_factory=dict)  # name -> TriggerState
     ysoc_stepdown_active: bool = False  # latched by the interpreter
     current_waterfall: str = ""
     prin_collections_p: float = 0.0

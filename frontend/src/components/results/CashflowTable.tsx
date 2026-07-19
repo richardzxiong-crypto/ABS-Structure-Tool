@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 interface Props {
   /** column-oriented data from the API: {col: values[]} */
-  columns: Record<string, (number | string)[]>;
+  columns: Record<string, (number | string | null)[]>;
   pageSize?: number;
 }
 
@@ -21,7 +21,7 @@ export default function CashflowTable({ columns, pageSize = 12 }: Props) {
       type: typeof columns[c][0] === "number" ? "rightAligned" : undefined,
       valueFormatter:
         typeof columns[c][0] === "number" && !Number.isInteger(columns[c][0])
-          ? (p) => (p.value as number).toLocaleString(undefined, { maximumFractionDigits: 4 })
+          ? (p) => (p.value == null ? "" : (p.value as number).toLocaleString(undefined, { maximumFractionDigits: 4 }))
           : undefined,
       minWidth: 110,
     }));
