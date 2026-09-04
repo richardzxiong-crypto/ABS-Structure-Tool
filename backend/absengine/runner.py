@@ -11,7 +11,6 @@ from .collateral.base import project_pool
 from .models.common import DayCount
 from .models.deal import Deal
 from .models.scenario import Scenario
-from .models.structure import GroupNode
 from .waterfall import run_waterfall
 
 
@@ -27,17 +26,6 @@ def check_supported(deal: Deal) -> None:
                     f"class {c.id}: {c.day_count.value} day count needs deal dates "
                     f"(set deal.dates for a payment calendar)"
                 )
-
-    def walk(node):
-        if isinstance(node, GroupNode):
-            if node.mode == "target_balance":
-                raise UnsupportedFeatureError(
-                    f"group {node.name!r}: target_balance allocation is not implemented yet"
-                )
-            for ch in node.children:
-                walk(ch)
-
-    walk(deal.structure.allocation_tree)
 
     for wf in deal.waterfall.waterfalls:
         for step in wf.steps:

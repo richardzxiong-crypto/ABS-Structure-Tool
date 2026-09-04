@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..models.accounts import FeeSpec
-from ..models.structure import AllocationNode, tree_class_ids
+from ..models.structure import AllocationNode, GroupNode, tree_class_ids
 from ..models.waterfall import PayPrincipalStep, TargetOCSpec
 from .state import EngineState
 
@@ -87,3 +87,20 @@ def principal_due(state: EngineState, step: PayPrincipalStep, resolved: list[All
     if step.amount_rule == "turbo":
         return state.funds.balance(step.source)
     raise ValueError(step.amount_rule)
+
+
+def target_balance_cap(state: EngineState):
+    """group -> max principal a target_balance group may take this period:
+    current group balance - target balance (schedule or pct of the period's
+    ending pool balance), floored at 0."""
+
+    def cap(node: GroupNode) -> float | None:
+        spec = node.target_balance_spec
+        if node.mode != "target_balance" or spec is None:
+            return None
+        pool_end = state.pool_basis_end(spec.pool_basis) if spec.kind == "pct_of_pool" else 0.0
+        target = spec.target_for(state.period, pool_end)
+        group_bal = sum(state.bonds[cid].balance for cid in tree_class_ids(node))
+        return max(0.0, group_bal - target)
+
+    return cap

@@ -53,7 +53,9 @@ waterfall, and scenarios, and hit **Run**.
 **Structure** — bond classes (fixed or floating coupons; 30/360 and ACT day
 counts on a business-day-adjusted payment calendar) plus a recursive
 **allocation tree**: named groups with payment modes (`sequential`,
-`pro_rata`; `target_balance` planned) nesting to arbitrary depth.
+`pro_rata`, `target_balance` - scheduled/PAC classes paid down to a
+per-period schedule or a pct-of-pool target, excess to companions) nesting
+to arbitrary depth.
 
 **Waterfall** — ordered steps, each `source → action → targets`:
 sources are named cash buckets including `reserve:<name>` accounts; actions
@@ -78,7 +80,7 @@ traps).
 or CDR dial), prepay × loss sensitivity matrices, price/yield tables.
 
 Planned (modeled, validation-gated): external sources, delinquency
-triggers, `target_balance` mode.
+triggers.
 
 The `sfast-2026-1` golden case pins the engine against a full Intex CF run
 of a $1.5bn prime auto deal (7 classes, YSOC, reserve account, tiered PDAs,

@@ -152,6 +152,18 @@ Funding delay 1: everything shifts one trust period later (trust period 1 empty)
   pro-rata mode wins. Pro-rata shares are by beginning-of-period balances
   (`current`) or original balances (`original`), with overflow redistributed
   to undersubscribed siblings.
+- **Target-balance (scheduled) groups**: a `target_balance` group in the
+  allocation tree is paid principal only down to its target for the period:
+  group capacity = `max(0, current group balance − target_t)`, where
+  `target_t` is the `schedule` entry for period t (0 beyond the last entry)
+  or `pct × ending pool balance` on the spec's basis. Cash above the cap
+  flows to the next target listed on the step. Inside the group cash goes
+  sequentially (child order) or pro rata (`distribution`). Interest and
+  shortfall steps ignore the target (the group acts sequentially). A PAC /
+  companion structure is `targets: ["PAC", "Companion", "PAC-class"]` - the
+  scheduled class listed again at the end absorbs everything once the
+  companion is retired. A class listed under several targets of one step gets
+  one flow-log row per listing.
 - Final period: any remaining bond balance becomes a writedown, applied in
   reverse seniority (depth-first allocation-tree leaf order).
 
