@@ -1,8 +1,8 @@
 import type { ColDef } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
-import { useState } from "react";
 
 import type { BondClass, Deal } from "../../api/client";
+import AllocationTreeEditor from "./AllocationTreeEditor";
 
 interface Props {
   deal: Deal;
@@ -44,9 +44,6 @@ const COLS: ColDef<Row>[] = [
 ];
 
 export default function BondClassGrid({ deal, update }: Props) {
-  const [treeJson, setTreeJson] = useState<string | null>(null);
-  const [treeError, setTreeError] = useState<string | null>(null);
-
   const rows: Row[] = deal.structure.classes.map((c) => ({
     id: c.id,
     name: c.name,
@@ -83,57 +80,7 @@ export default function BondClassGrid({ deal, update }: Props) {
         />
       </div>
 
-      <div className="card">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
-            Allocation tree (payment modes per group; recursive editor lands in Phase 2)
-          </h2>
-          {treeJson === null ? (
-            <button className="btn-ghost"
-              onClick={() => setTreeJson(JSON.stringify(deal.structure.allocation_tree, null, 2))}>
-              Edit JSON
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button className="btn-ghost" onClick={() => { setTreeJson(null); setTreeError(null); }}>
-                Cancel
-              </button>
-              <button className="btn-primary"
-                onClick={() => {
-                  try {
-                    const parsed = JSON.parse(treeJson);
-                    update((d) => {
-                      d.structure.allocation_tree = parsed;
-                    });
-                    setTreeJson(null);
-                    setTreeError(null);
-                  } catch (e) {
-                    setTreeError(String(e));
-                  }
-                }}>
-                Apply
-              </button>
-            </div>
-          )}
-        </div>
-        {treeError && <div className="mb-2 text-sm text-red-600">{treeError}</div>}
-        {treeJson === null ? (
-          <pre className="overflow-auto rounded bg-slate-50 p-3 text-xs text-slate-700">
-            {renderTree(deal.structure.allocation_tree, 0)}
-          </pre>
-        ) : (
-          <textarea className="input h-64 font-mono text-xs" value={treeJson}
-            onChange={(e) => setTreeJson(e.target.value)} />
-        )}
-      </div>
+      <AllocationTreeEditor deal={deal} update={update} />
     </div>
   );
-}
-
-function renderTree(node: Deal["structure"]["allocation_tree"], depth: number): string {
-  const pad = "  ".repeat(depth);
-  if (node.type === "class") return `${pad}└ ${node.class_id}\n`;
-  let out = `${pad}${node.name} (${node.mode}${node.mode === "pro_rata" ? `, basis=${node.pro_rata_basis}` : ""})\n`;
-  for (const child of node.children ?? []) out += renderTree(child, depth + 1);
-  return out;
 }

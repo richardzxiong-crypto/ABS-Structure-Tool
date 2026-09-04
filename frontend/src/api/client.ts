@@ -99,6 +99,14 @@ export interface StepCondition {
   when: "pass" | "fail";
 }
 
+export interface TargetBalanceSpec {
+  kind: "schedule" | "pct_of_pool";
+  schedule: number[];
+  pct: number;
+  pool_basis: PoolBasis;
+  distribution?: "sequential" | "pro_rata";
+}
+
 export interface AllocationNode {
   type: "class" | "group";
   class_id?: string;
@@ -106,6 +114,8 @@ export interface AllocationNode {
   mode?: "sequential" | "pro_rata" | "target_balance";
   children?: AllocationNode[];
   pro_rata_basis?: "current" | "original";
+  overflow?: "sequential" | "pro_rata";
+  target_balance_spec?: TargetBalanceSpec | null;
 }
 
 export interface TargetOCSpec {
