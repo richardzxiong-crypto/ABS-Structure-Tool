@@ -8,6 +8,9 @@ import pandas as pd
 from ..models.common import PoolBalanceBasis
 
 # Per-repline fields (on the trust timeline after delay mapping).
+# delinquent_balance = the period's delinquency share x post-default
+# performing balance (a level for delinquency triggers; with the scenario's
+# withhold cash effect that share pays no interest / scheduled principal).
 # ysoa_primary / ysoa_stepdown are end-of-period YSOA contributions at the two
 # strike rates (zero unless the deal has a YsocConfig); the waterfall selects
 # between them per period (stepdown state is bond-dependent).
@@ -17,6 +20,7 @@ REPLINE_FIELDS = [
     "pending_chargeoff",
     "defaults", "chargeoffs", "losses", "recoveries",
     "interest", "sched_prin", "prepay_prin",
+    "delinquent_balance",
     "ysoa_primary", "ysoa_stepdown",
 ]
 # Pool aggregate adds servicing_fee, cum_net_loss, ysoa, adjusted_pool.

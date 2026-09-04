@@ -215,6 +215,33 @@ export default function ScenarioEditor({ deal, update }: Props) {
         </div>
       </div>
 
+      <div className="card space-y-3">
+        <h2 className="text-sm font-semibold text-slate-700">Delinquency</h2>
+        <div className="flex flex-wrap gap-3">
+          <div>
+            <label className="label">Delinquent share of performing balance</label>
+            <input className="input w-28" type="number" step="0.005" min={0} max={1}
+              value={scen.delinquency?.type === "scalar" ? scen.delinquency.value : undefined}
+              disabled={scen.delinquency !== undefined && scen.delinquency.type !== "scalar"}
+              placeholder={scen.delinquency && scen.delinquency.type !== "scalar" ? `(${scen.delinquency.type})` : "0"}
+              onChange={(e) => patch((s) => { s.delinquency = { type: "scalar", value: Number(e.target.value) }; })} />
+          </div>
+          <div>
+            <label className="label">Cash effect</label>
+            <select className="input w-56" value={scen.delinquency_cash_effect ?? "none"}
+              onChange={(e) => patch((s) => { s.delinquency_cash_effect = e.target.value as "none" | "withhold"; })}>
+              <option value="none">none (triggers only)</option>
+              <option value="withhold">withhold (no interest / sched from delinquent share)</option>
+            </select>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">
+          A level (e.g. 0.03 = 3% of the pool 60+ days delinquent), not an annual rate. Use the
+          JSON editor below for a vector. Delinquency triggers average this ratio over their
+          lookback window.
+        </p>
+      </div>
+
       <IndexCurvesCard deal={deal} scen={scen} patch={patch} />
 
       <div className="card">

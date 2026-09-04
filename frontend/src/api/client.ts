@@ -91,6 +91,7 @@ export interface Trigger {
   threshold?: number;
   schedule?: [number, number][];
   basis?: PoolBasis;
+  lookback?: number;
 }
 
 export interface StepCondition {

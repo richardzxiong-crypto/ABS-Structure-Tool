@@ -22,7 +22,7 @@ export default function DealSettings({ deal, update }: Props) {
   );
 }
 
-const TRIGGER_TYPES = ["cum_net_loss", "pool_factor", "oc_test", "ic_test"] as const;
+const TRIGGER_TYPES = ["cum_net_loss", "delinquency", "pool_factor", "oc_test", "ic_test"] as const;
 const OPERATORS = ["<", "<=", ">", ">="] as const;
 
 function TriggersCard({ deal, update }: Props) {
@@ -46,8 +46,9 @@ function TriggersCard({ deal, update }: Props) {
       </div>
       {deal.triggers.length === 0 && (
         <p className="text-xs text-slate-500">
-          No triggers. Add one (e.g. a cumulative-net-loss test) and reference it from a
-          waterfall step's condition to model pro-rata → sequential switches or cash traps.
+          No triggers. Add one (e.g. a cumulative-net-loss or delinquency test) and reference
+          it from a waterfall step's condition to model pro-rata → sequential switches or
+          cash traps. Delinquency tests read the scenario's delinquency vector.
         </p>
       )}
       {deal.triggers.map((t: Trigger, i) => (
@@ -65,6 +66,9 @@ function TriggersCard({ deal, update }: Props) {
                   const type = e.target.value as Trigger["type"];
                   d.triggers[i] = type === "cum_net_loss"
                     ? { type, name: t.name, curable: t.curable, operator: "<=", schedule: [] }
+                    : type === "delinquency"
+                    ? { type, name: t.name, curable: t.curable, operator: "<=", threshold: 0.05,
+                        basis: "trust", lookback: 3 }
                     : { type, name: t.name, curable: t.curable,
                         operator: type === "pool_factor" ? ">" : ">=",
                         threshold: 0, ...(type !== "ic_test" ? { basis: "trust" as const } : {}) };
@@ -105,7 +109,14 @@ function TriggersCard({ deal, update }: Props) {
                 onChange={(e) => update((d) => { d.triggers[i].threshold = Number(e.target.value); })} />
             </div>
           )}
-          {(t.type === "pool_factor" || t.type === "oc_test") && (
+          {t.type === "delinquency" && (
+            <div>
+              <label className="label">Avg. over periods</label>
+              <input className="input w-20" type="number" min={1} value={t.lookback ?? 1}
+                onChange={(e) => update((d) => { d.triggers[i].lookback = Math.max(1, Number(e.target.value)); })} />
+            </div>
+          )}
+          {(t.type === "pool_factor" || t.type === "oc_test" || t.type === "delinquency") && (
             <div>
               <label className="label">Basis</label>
               <select className="input w-28" value={t.basis ?? "trust"}

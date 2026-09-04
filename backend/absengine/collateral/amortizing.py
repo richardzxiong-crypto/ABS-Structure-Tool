@@ -95,6 +95,12 @@ def _smm_path(rep: Repline, scenario: Scenario, n: int) -> np.ndarray:
     return annual_to_monthly(speed)
 
 
+def _dq_path(scenario: Scenario, n: int) -> np.ndarray:
+    """Delinquent share of the performing balance per period (a level in
+    [0, 1], not an annual rate)."""
+    return np.clip(expand(scenario.delinquency, n), 0.0, 1.0)
+
+
 def _level_pay_sched(balance: float, monthly_rate: float, n_rem: int) -> float:
     """Scheduled principal this period for a level-pay loan."""
     if n_rem <= 0 or balance <= _EPS:
@@ -148,20 +154,27 @@ def _reference_mdr_path(
 
 
 def _evolve_period(
-    scenario: Scenario, beg: float, r: float, n_rem: int, d: float, smm_t: float
+    scenario: Scenario, beg: float, r: float, n_rem: int, d: float, smm_t: float,
+    dq_t: float = 0.0,
 ) -> tuple[float, float, float, float]:
-    """One period of the repline pipeline given the default amount d.
-    Returns (interest, sched, prepay, end_performing)."""
+    """One period of the repline pipeline given the default amount d and the
+    delinquent share dq_t. Returns (interest, sched, prepay, end_performing)."""
     mdr_t = d / beg if beg > 0 else 0.0
     p = beg - d
 
+    # delinquency: with the "withhold" cash effect the delinquent share pays
+    # neither interest nor its scheduled principal this period (the missed
+    # sched stays in the balance and re-amortizes; missed interest is lost -
+    # no servicer advancing). "none" = measurement only.
+    paying = 1.0 - dq_t if scenario.delinquency_cash_effect == "withhold" else 1.0
+
     # interest accrues on the post-default performing balance only
-    interest = p * r
+    interest = p * r * paying
 
     # scheduled principal (level pay, recomputed on remaining term). The level
     # payment is linear in balance, so the post-default sched equals the
     # beginning-balance sched scaled by (1 - MDR).
-    sched_full = _level_pay_sched(beg, r, n_rem)
+    sched_full = _level_pay_sched(beg, r, n_rem) * paying
     sched = sched_full * (p / beg) if beg > 0 else 0.0
 
     # voluntary prepay - the rate base is (performing - sched), or
@@ -218,6 +231,7 @@ def _pool_default_dollars(
     total_b0 = sum(rep.balance for rep in replines)
     d_star = _target_dollar_defaults(spec, sev, total_b0, rep_t, co_lag)
     smms = {rep.id: _smm_path(rep, scenario, rep_t) for rep in replines}
+    dq = _dq_path(scenario, rep_t)
 
     def run(vol_on: bool, pool_target_fn) -> tuple[dict[str, np.ndarray], np.ndarray]:
         """Joint evolution; pool_target_fn(t, total_beg) -> pool default $.
@@ -239,13 +253,14 @@ def _pool_default_dollars(
             for rep in replines:
                 i = rep.id
                 beg = p[i]
-                if beg <= _EPS or n_rem[i] <= 0:
+                if beg <= _EPS:
                     continue
                 d = d_alloc.get(i, 0.0)
                 out[i][t] = d
                 smm_t = smms[i][t] if vol_on else 0.0
                 _, _, _, end = _evolve_period(scenario, beg, rep.gross_rate / 12.0,
-                                              n_rem[i], d, smm_t)
+                                              max(n_rem[i], 1), d, smm_t,
+                                              dq[t] if vol_on else 0.0)
                 p[i] = end
                 n_rem[i] -= 1
         return out, total_beg
@@ -274,6 +289,7 @@ def _project_repline(
         return a
 
     smm = _smm_path(rep, scenario, rep_t)
+    dq = _dq_path(scenario, rep_t)
     sev = np.clip(expand(scenario.loss.severity, rep_t), 0.0, 1.0)
     if default_dollars is not None:  # pool-allocated (already suppression-aware)
         mdr_path = None
@@ -298,9 +314,12 @@ def _project_repline(
     for t in range(rep_t):
         beg = p
         a["beg_performing"][t] = beg
-        if beg <= _EPS or n_rem <= 0:
+        if beg <= _EPS:
             a["end_performing"][t] = beg
             continue
+        # balance still outstanding past the scheduled maturity (withheld
+        # delinquent sched) is due immediately - a balloon that keeps trying
+        n_eff = max(n_rem, 1)
 
         # 1. defaults (move to pending charge-off; stop performing immediately)
         if mdr_path is not None:
@@ -308,13 +327,14 @@ def _project_repline(
         else:
             d = min(d_star[t], beg)  # aggregate_MDR: dollars fit to the cum-loss target
         d = min(d, beg)
-        if suppress and n_rem <= scenario.loss.charge_off_lag:
+        if (suppress and n_rem <= scenario.loss.charge_off_lag) or n_rem <= 0:
             d = 0.0
 
         # 2.-4. interest, scheduled principal, voluntary prepay
-        interest, sched, prepay, p = _evolve_period(scenario, beg, r, n_rem, d, smm[t])
+        interest, sched, prepay, p = _evolve_period(scenario, beg, r, n_eff, d, smm[t], dq[t])
         n_rem -= 1
 
+        a["delinquent_balance"][t] = (beg - d) * dq[t]
         a["interest"][t] = interest
         a["defaults"][t] = d
         a["sched_prin"][t] = sched
@@ -388,6 +408,7 @@ def _map_to_trust(rep: Repline, raw: dict[str, np.ndarray], num_periods: int) ->
         out["end_performing"][i] = raw["end_performing"][j]
         out["end_trust"][i] = raw["end_trust"][j]
         out["pending_chargeoff"][i] = raw["pending_chargeoff"][j]
+        out["delinquent_balance"][i] = raw["delinquent_balance"][j]
         out["ysoa_primary"][i] = raw["ysoa_primary"][j]
         out["ysoa_stepdown"][i] = raw["ysoa_stepdown"][j]
     return out

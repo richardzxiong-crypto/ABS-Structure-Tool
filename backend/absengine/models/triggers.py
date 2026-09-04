@@ -1,5 +1,5 @@
-"""Trigger config models. Evaluation lands in Phase 2; the models exist now so
-deal JSON schema doesn't churn."""
+"""Trigger config models. The interpreter evaluates them at determination and
+owns the cure/latch state machine; handlers live in absengine.triggers."""
 
 from typing import Annotated, Literal, Union
 
@@ -24,9 +24,16 @@ class CumNetLossTrigger(TriggerBase):
 
 
 class DelinquencyTrigger(TriggerBase):
+    """measured = delinquent balance / beginning basis balance, averaged over
+    the last `lookback` collection periods (fewer at the start of the deal -
+    the usual "average of the three preceding collection periods" language
+    is lookback=3)."""
+
     type: Literal["delinquency"] = "delinquency"
     operator: Operator = "<="
     threshold: float = 0.0
+    basis: PoolBalanceBasis = PoolBalanceBasis.TRUST
+    lookback: int = Field(default=1, ge=1)
 
 
 class PoolFactorTrigger(TriggerBase):

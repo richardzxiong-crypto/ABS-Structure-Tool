@@ -36,12 +36,6 @@ def check_supported(deal: Deal) -> None:
                 f"external source {x.name!r}: swap index {x.index!r} has no curve in "
                 f"scenario(s) {missing} (index_curves)"
             )
-    for trig in deal.triggers:
-        if trig.type == "delinquency":
-            raise UnsupportedFeatureError(
-                f"trigger {trig.name!r}: delinquency triggers need delinquency "
-                f"modeling in the collateral engine (not implemented yet)"
-            )
 
 
 # backwards-compatible alias (tests / older callers)

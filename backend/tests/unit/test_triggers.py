@@ -4,7 +4,7 @@ conditional waterfall steps switching principal from pro-rata to sequential."""
 import pytest
 
 from absengine.models.deal import Deal
-from absengine.runner import UnsupportedFeatureError, check_supported, run_deal
+from absengine.runner import run_deal
 from tests.conftest import make_deal
 
 
@@ -52,11 +52,57 @@ def test_cnl_schedule_steps_and_no_test_before_first_entry():
     assert by_p.loc[3, "state"] == "failing"
 
 
-def test_delinquency_trigger_rejected():
-    cfg = make_deal().model_dump()
-    cfg["triggers"] = [{"type": "delinquency", "name": "dq", "threshold": 0.05}]
-    with pytest.raises(UnsupportedFeatureError, match="delinquency"):
-        check_supported(Deal.model_validate(cfg))
+def test_delinquency_trigger_measures_scenario_delinquency_with_lookback():
+    """Delinquency 2% for 3 periods then 8%: a 3-period average trigger at 5%
+    fails only once the average crosses, later than the raw level does."""
+    cfg = make_deal(scenarios=[{
+        "name": "base",
+        "delinquency": {"type": "vector", "values": [0.02, 0.02, 0.02, 0.08]},
+        "loss": {"defaults": {"type": "cdr", "cdr": {"type": "scalar", "value": 0.0}}},
+    }]).model_dump()
+    cfg["triggers"] = [
+        {"type": "delinquency", "name": "dq1", "operator": "<=", "threshold": 0.05, "lookback": 1},
+        {"type": "delinquency", "name": "dq3", "operator": "<=", "threshold": 0.05, "lookback": 3},
+    ]
+    res = run_deal(Deal.model_validate(cfg))
+    c = res.collateral.set_index("period")
+    # delinquent balance = share x post-default performing balance (no defaults here)
+    assert c.loc[1, "delinquent_balance"] == pytest.approx(0.02 * c.loc[1, "beg_performing"])
+    assert c.loc[4, "delinquent_balance"] == pytest.approx(0.08 * c.loc[4, "beg_performing"])
+    m1 = res.triggers[res.triggers["trigger"] == "dq1"].set_index("period")
+    m3 = res.triggers[res.triggers["trigger"] == "dq3"].set_index("period")
+    assert m1.loc[4, "measured"] == pytest.approx(0.08)
+    assert m3.loc[4, "measured"] == pytest.approx((0.02 + 0.02 + 0.08) / 3)
+    assert m3.loc[5, "measured"] == pytest.approx((0.02 + 0.08 + 0.08) / 3)
+    assert m1.loc[4, "state"] == "failing"
+    assert m3.loc[4, "state"] == "passing" and m3.loc[5, "state"] == "failing"
+    # measurement only: cash is untouched (interest = full accrual)
+    assert c.loc[4, "interest"] == pytest.approx(c.loc[4, "beg_performing"] * 0.08 / 12)
+
+
+def test_delinquency_withhold_cash_effect():
+    """withhold: the delinquent share pays no interest and no scheduled
+    principal that period; the missed sched stays in the balance."""
+    base = make_deal(scenarios=[{
+        "name": "base",
+        "loss": {"defaults": {"type": "cdr", "cdr": {"type": "scalar", "value": 0.0}}},
+    }])
+    dq = make_deal(scenarios=[{
+        "name": "base",
+        "delinquency": {"type": "vector", "values": [0.10, 0.10, 0.10, 0.0]},
+        "delinquency_cash_effect": "withhold",
+        "loss": {"defaults": {"type": "cdr", "cdr": {"type": "scalar", "value": 0.0}}},
+    }])
+    b = run_deal(base).collateral.set_index("period")
+    d = run_deal(dq).collateral.set_index("period")
+    assert d.loc[1, "interest"] == pytest.approx(0.9 * b.loc[1, "interest"])
+    assert d.loc[1, "sched_prin"] == pytest.approx(0.9 * b.loc[1, "sched_prin"])
+    assert d.loc[1, "end_performing"] > b.loc[1, "end_performing"]
+    assert d.loc[4, "interest"] == pytest.approx(d.loc[4, "beg_performing"] * 0.08 / 12)
+    # once delinquency clears the balance re-amortizes and still pays off
+    assert d["end_performing"].iloc[-1] == pytest.approx(0.0, abs=1e-9)
+    # roll-forward ties
+    assert (d["end_performing"] - (d["beg_performing"] - d["sched_prin"] - d["prepay_prin"])).abs().max() < 1e-9
 
 
 # ------------------------------------------------- conditional waterfall switch
@@ -118,3 +164,18 @@ def test_conditional_steps_switch_pro_rata_to_sequential():
     seq_periods = set(f[f["step_id"] == "prin_seq_a"]["period"])
     assert pro_rata_periods == {p for p, s in st.items() if s in ("passing", "cured")}
     assert not (pro_rata_periods & seq_periods)
+
+
+def test_delinquent_balance_past_maturity_is_a_balloon():
+    """A share withheld at the final scheduled payment stays outstanding and
+    is due (and paid, net of the delinquent share) in every later period."""
+    deal = make_deal(num_periods=15, scenarios=[{
+        "name": "base",
+        "delinquency": {"type": "vector", "values": [0.0] * 11 + [0.5, 0.5, 0.0]},
+        "delinquency_cash_effect": "withhold",
+        "loss": {"defaults": {"type": "cdr", "cdr": {"type": "scalar", "value": 0.0}}},
+    }])
+    c = run_deal(deal).collateral.set_index("period")
+    assert c.loc[12, "end_performing"] > 0  # half the final payment withheld
+    assert c.loc[13, "sched_prin"] == pytest.approx(0.5 * c.loc[13, "beg_performing"])
+    assert c.loc[14, "end_performing"] == pytest.approx(0.0, abs=1e-9)

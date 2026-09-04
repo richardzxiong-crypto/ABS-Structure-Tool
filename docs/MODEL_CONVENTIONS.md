@@ -78,6 +78,16 @@ an Intex CF run (the `sfast-2026-1` golden case) and tie to sub-cent precision.
    `recovery_lag_from: "default"` *(Intex-style: with equal lags the recovery
    arrives in the same period as the charge-off)*. Routed to principal
    collections by default (`recoveries_to` on the scenario).
+7. **Delinquency** (`scenario.delinquency`, a per-period *level* in [0, 1]):
+   `delinquent_balance_t = dq_t × post-default performing balance`. With
+   `delinquency_cash_effect: "none"` (default) it is a measurement only.
+   With `"withhold"` the delinquent share pays neither interest nor its
+   scheduled principal that period: interest and sched are scaled by
+   `(1 − dq_t)`, the missed sched stays in the balance and re-amortizes
+   over the remaining term, and the missed interest is lost (no servicer
+   advancing). Balance still outstanding past the scheduled maturity is a
+   balloon due every subsequent period (net of that period's delinquent
+   share).
 - **Performing balance** excludes defaults immediately (no interest, no
   sched); **trust balance** = performing + defaulted-not-yet-charged-off.
 - Flows scheduled beyond `num_periods` are truncated - size the horizon to
@@ -199,8 +209,10 @@ Funding delay 1: everything shifts one trust period later (trust period 1 empty)
   passing); `pool_factor` = beginning basis balance / original;
   `oc_test` = beginning basis balance / total beginning bond balance;
   `ic_test` = the period's interest collections / total bond interest
-  accrued. Delinquency triggers are modeled but rejected (no delinquency
-  state in the collateral engine yet).
+  accrued; `delinquency` = delinquent balance / beginning basis balance,
+  averaged over the last `lookback` collection periods (fewer at the start
+  of the deal; "average of the three preceding collection periods" is
+  `lookback: 3`).
 - State machine: PASSING → FAILING on a failed test; a `curable` trigger
   returns to CURED (functionally passing) when the test passes again; a
   non-curable trigger latches PERMANENTLY_FAILED forever.
