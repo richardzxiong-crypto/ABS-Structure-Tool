@@ -139,4 +139,23 @@ class Scenario(BaseModel):
     prepay: PrepayAssumption = Field(default_factory=PrepayAssumption)
     loss: LossAssumption = Field(default_factory=LossAssumption)
     recoveries_to: Literal["principal", "interest"] = "principal"
-    index_curves: dict[str, RateSpec] = Field(default_factory=dict, description="Phase 2: floating-rate indices")
+    index_curves: dict[str, RateSpec] = Field(
+        default_factory=dict, description="floating-rate index paths by name (annual decimals)"
+    )
+    external_amounts: dict[str, RateSpec] = Field(
+        default_factory=dict,
+        description="per-scenario overrides of kind='amount' external sources (dollars per period)",
+    )
+    delinquency: RateSpec = Field(
+        default_factory=ScalarRate,
+        description="share of the performing balance that is delinquent each period "
+        "(a level, not an annual rate); drives delinquency triggers and, with "
+        "delinquency_cash_effect, withholds that share's interest/scheduled principal",
+    )
+    delinquency_cash_effect: Literal["none", "withhold"] = Field(
+        default="none",
+        description="none: delinquency is a measurement only; withhold: the "
+        "delinquent share pays no interest or scheduled principal this period "
+        "(the missed scheduled principal stays in the balance; missed interest "
+        "is lost - no servicer advancing)",
+    )

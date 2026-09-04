@@ -53,48 +53,91 @@ class WaterfallOutput:
     seeded: np.ndarray
     accounts: pd.DataFrame  # reserve balances, one row per (period, account)
     triggers: pd.DataFrame  # one row per (period, trigger): measured/threshold/state
+    externals: pd.DataFrame  # one row per (period, source): net / seeded receipt
     ysoa: np.ndarray  # realized (strike-selected) YSOA per period
     adjusted_pool: np.ndarray  # realized adjusted pool balance per period
 
 
-def _accrual_paths(deal: Deal, scenario: Scenario) -> dict[str, np.ndarray]:
-    """Per-class accrual rate path: interest_t = balance * path[t-1].
+def _year_fracs(deal: Deal, day_count: DayCount) -> np.ndarray:
+    """Accrual fraction per period for a day count on the deal calendar.
 
-    With DealDates: rate * year_frac(payment_date(t-1), payment_date(t)) per
-    the class day count (period 1 accrues from the closing date - typically a
-    short period). Without dates: flat rate/12.
+    With DealDates: year_frac(payment_date(t-1), payment_date(t)) (period 1
+    accrues from the closing date - typically short); ACT day counts accrue
+    between business-day-adjusted dates, 30/360 on the unadjusted calendar.
+    Without dates: flat 1/12.
     """
     n = deal.num_periods
-    if deal.dates is not None:
-        pay = [deal.dates.payment_date(t) for t in range(n + 1)]
-        pay_adj = [deal.dates.adjusted_payment_date(t) for t in range(n + 1)]
+    if deal.dates is None:
+        return np.full(n, 1.0 / 12.0)
+    if day_count == DayCount.THIRTY_360:
+        cal = [deal.dates.payment_date(t) for t in range(n + 1)]
+    else:
+        cal = [deal.dates.adjusted_payment_date(t) for t in range(n + 1)]
+    return np.array([year_frac(cal[t - 1], cal[t], day_count) for t in range(1, n + 1)])
+
+
+def _index_path(deal: Deal, scenario: Scenario, index: str, who: str) -> np.ndarray:
+    curve = scenario.index_curves.get(index)
+    if curve is None:
+        raise ValueError(
+            f"{who}: index {index!r} has no curve in scenario {scenario.name!r} (index_curves)"
+        )
+    return expand(curve, deal.num_periods)
+
+
+def _accrual_paths(deal: Deal, scenario: Scenario) -> dict[str, np.ndarray]:
+    """Per-class accrual rate path: interest_t = balance * path[t-1]."""
+    n = deal.num_periods
     paths: dict[str, np.ndarray] = {}
     for c in deal.structure.classes:
         if isinstance(c.coupon, FixedCoupon):
             annual = np.full(n, c.coupon.rate)
         elif isinstance(c.coupon, FloatingCoupon):
-            curve = scenario.index_curves.get(c.coupon.index)
-            if curve is None:
-                raise ValueError(
-                    f"class {c.id}: floating index {c.coupon.index!r} has no curve in "
-                    f"scenario {scenario.name!r} (index_curves)"
-                )
-            annual = expand(curve, n) + c.coupon.margin
+            annual = _index_path(deal, scenario, c.coupon.index, f"class {c.id}") + c.coupon.margin
             if c.coupon.cap is not None:
                 annual = np.minimum(annual, c.coupon.cap)
             if c.coupon.floor is not None:
                 annual = np.maximum(annual, c.coupon.floor)
         else:
             raise TypeError(f"unknown CouponSpec {type(c.coupon)}")
-        if deal.dates is not None:
-            # ACT classes accrue between business-day-adjusted payment dates;
-            # 30/360 stays on the unadjusted calendar (market convention)
-            cal = pay if c.day_count == DayCount.THIRTY_360 else pay_adj
-            yf = np.array([year_frac(cal[t - 1], cal[t], c.day_count) for t in range(1, n + 1)])
-        else:
-            yf = np.full(n, 1.0 / 12.0)
-        paths[c.id] = annual * yf
+        paths[c.id] = annual * _year_fracs(deal, c.day_count)
     return paths
+
+
+def _external_amount_paths(deal: Deal, scenario: Scenario) -> dict[str, np.ndarray]:
+    """kind='amount' sources: dollars per period inside the active window
+    (scenario.external_amounts overrides the deal-level amount)."""
+    n = deal.num_periods
+    out: dict[str, np.ndarray] = {}
+    for x in deal.external_sources:
+        if x.kind != "amount":
+            continue
+        spec = scenario.external_amounts.get(x.name, x.amount)
+        path = np.maximum(expand(spec, n), 0.0)
+        out[x.name] = _window(path, x.start_period, x.end_period, n)
+    return out
+
+
+def _window(path: np.ndarray, start: int, end: int | None, n: int) -> np.ndarray:
+    mask = np.zeros(n, dtype=bool)
+    last = n if end is None else min(end, n)
+    if start <= last:
+        mask[start - 1:last] = True
+    return np.where(mask, path, 0.0)
+
+
+def _swap_net(deal: Deal, scenario: Scenario, x, t: int, bonds: dict[str, BondState]) -> float:
+    """Net swap amount for period t: notional x (index + spread - fixed) x accrual."""
+    if t < x.start_period or (x.end_period is not None and t > x.end_period):
+        return 0.0
+    if x.notional_class is not None:
+        notional = bonds[x.notional_class].beg_balance_p
+    else:
+        sched = x.notional_schedule
+        notional = sched[t - 1] if t - 1 < len(sched) else sched[-1]
+    idx = float(_index_path(deal, scenario, x.index, f"external source {x.name!r}")[t - 1])
+    yf = float(_year_fracs(deal, x.day_count)[t - 1])
+    return notional * (idx + x.spread - x.fixed_rate) * yf
 
 
 def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -> WaterfallOutput:
@@ -113,6 +156,8 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
     bond_rows: list[dict] = []
     account_rows: list[dict] = []
     trigger_rows: list[dict] = []
+    external_rows: list[dict] = []
+    ext_amounts = _external_amount_paths(deal, scenario)
     residual = np.zeros(num_periods)
     fees_paid = np.zeros(num_periods)
     retained = np.zeros(num_periods)
@@ -175,6 +220,18 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
             state.funds.seed("principal_collections", float(prin_coll[t - 1]))
         for name, bal in state.accounts.items():
             state.funds.seed(f"reserve:{name}", bal)
+        # external sources: fixed amounts, or swap net receipts (a negative
+        # swap net is owed by the trust and payable via "swap:<name>" fees)
+        state.external_net_p = {}
+        for x in deal.external_sources:
+            if x.kind == "swap":
+                net = _swap_net(deal, scenario, x, t, bonds)
+            else:
+                net = float(ext_amounts[x.name][t - 1])
+            state.external_net_p[x.name] = net
+            receipt = max(net, 0.0)
+            state.funds.seed(f"external:{x.name}", receipt)
+            external_rows.append({"period": t, "source": x.name, "net": net, "receipt": receipt})
         seeded[t - 1] = sum(state.funds.seeded.values())
 
         # execute waterfalls in order; a step with a condition runs only when
@@ -245,6 +302,7 @@ def run_waterfall(deal: Deal, scenario: Scenario, collat: CollateralCashflows) -
         triggers=pd.DataFrame(
             trigger_rows, columns=["period", "trigger", "measured", "threshold", "state"]
         ),
+        externals=pd.DataFrame(external_rows, columns=["period", "source", "net", "receipt"]),
         ysoa=ysoa_used,
         adjusted_pool=adjusted_used,
     )

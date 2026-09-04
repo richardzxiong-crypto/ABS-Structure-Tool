@@ -28,6 +28,7 @@ class DealRunResult:
     seeded: np.ndarray
     accounts: pd.DataFrame | None = None  # reserve balances, one row per (period, account)
     triggers: pd.DataFrame | None = None  # one row per (period, trigger)
+    externals: pd.DataFrame | None = None  # one row per (period, external source)
     metrics: dict = field(default_factory=dict)
 
     def to_json_dict(self) -> dict:
@@ -44,5 +45,6 @@ class DealRunResult:
             "retained": self.retained.tolist(),
             "accounts": _df_to_columns(self.accounts) if self.accounts is not None else {},
             "triggers": _df_to_columns(self.triggers) if self.triggers is not None else {},
+            "externals": _df_to_columns(self.externals) if self.externals is not None else {},
             "metrics": self.metrics,
         }

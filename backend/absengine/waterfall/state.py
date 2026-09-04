@@ -91,6 +91,9 @@ class EngineState:
     # per-fee amounts paid this period, so a second pay_fees step (e.g. the
     # reserve-sourced twin of a collections step) only pays the remainder
     fee_paid_by_name_p: dict[str, float] = field(default_factory=dict)
+    # swap net amounts this period by external-source name (negative = the
+    # trust owes; payable via "swap:<name>" in a pay_fees step)
+    external_net_p: dict[str, float] = field(default_factory=dict)
 
     @property
     def fees_by_name(self) -> dict[str, FeeSpec]:

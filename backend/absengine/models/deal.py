@@ -4,7 +4,7 @@ from typing import Literal
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field, model_validator
 
-from .accounts import FeeSpec, ReserveAccount, YsocConfig
+from .accounts import ExternalSource, FeeSpec, ReserveAccount, YsocConfig
 from .collateral import CollateralPool
 from .scenario import Scenario
 from .structure import CapitalStructure, tree_class_ids, tree_group_names
@@ -64,6 +64,7 @@ class Deal(BaseModel):
     fees: list[FeeSpec] = Field(default_factory=list)
     reserve_accounts: list[ReserveAccount] = Field(default_factory=list)
     ysoc: YsocConfig | None = None
+    external_sources: list[ExternalSource] = Field(default_factory=list)
     waterfall: WaterfallSpec
     triggers: list[AnyTrigger] = Field(default_factory=list)
     scenarios: list[Scenario] = Field(default_factory=lambda: [Scenario()])
@@ -76,6 +77,15 @@ class Deal(BaseModel):
         reserve_names = {r.name for r in self.reserve_accounts}
         trigger_names = {t.name for t in self.triggers}
         valid_targets = class_ids | group_names
+        externals = {x.name: x for x in self.external_sources}
+        if len(externals) != len(self.external_sources):
+            raise ValueError("duplicate external source names")
+        for x in self.external_sources:
+            if x.kind == "swap" and x.notional_class is not None and x.notional_class not in class_ids:
+                raise ValueError(
+                    f"external source {x.name!r}: unknown notional class {x.notional_class!r}"
+                )
+        swap_fees = {f"swap:{name}" for name, x in externals.items() if x.kind == "swap"}
 
         step_ids: set[str] = set()
         for wf in self.waterfall.waterfalls:
@@ -89,7 +99,10 @@ class Deal(BaseModel):
                     if src.startswith("reserve:"):
                         if src.split(":", 1)[1] not in reserve_names:
                             raise ValueError(f"step {step.id!r}: unknown reserve source {src!r}")
-                    elif not src.startswith("external:"):
+                    elif src.startswith("external:"):
+                        if src.split(":", 1)[1] not in externals:
+                            raise ValueError(f"step {step.id!r}: unknown external source {src!r}")
+                    else:
                         raise ValueError(f"step {step.id!r}: unknown source {src!r}")
                 if self.waterfall.mode == "combined" and src in (
                     "interest_collections",
@@ -104,9 +117,12 @@ class Deal(BaseModel):
                     )
 
                 if isinstance(step, PayFeesStep):
-                    unknown = set(step.fees) - fee_names
+                    unknown = set(step.fees) - fee_names - swap_fees
                     if unknown:
-                        raise ValueError(f"step {step.id!r}: unknown fees {sorted(unknown)}")
+                        raise ValueError(
+                            f"step {step.id!r}: unknown fees {sorted(unknown)} "
+                            f"(fees are FeeSpec names or swap:<external source>)"
+                        )
                 if isinstance(step, (PayInterestStep, PayInterestShortfallStep, PayPrincipalStep)):
                     unknown = set(step.targets) - valid_targets
                     if unknown:

@@ -272,8 +272,12 @@ function IndexCurvesCard({
         .filter(Boolean),
     ),
   ];
+  const swapIndices = (deal.external_sources ?? [])
+    .filter((x) => x.kind === "swap")
+    .map((x) => x.index ?? "")
+    .filter(Boolean);
   const curves = scen.index_curves ?? {};
-  const names = [...new Set([...Object.keys(curves), ...floatingIndices])];
+  const names = [...new Set([...Object.keys(curves), ...floatingIndices, ...swapIndices])];
   if (names.length === 0) return null;
 
   const describe = (r: RateSpec | undefined) =>
@@ -309,7 +313,7 @@ function IndexCurvesCard({
                 }} />
             </div>
             {!curve && (
-              <span className="text-xs text-red-600">required by a floating class in this scenario</span>
+              <span className="text-xs text-red-600">required by a floating class or swap in this scenario</span>
             )}
           </div>
         );

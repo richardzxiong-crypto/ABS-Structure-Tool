@@ -24,7 +24,11 @@ function sourcesFor(deal: Deal): string[] {
     deal.waterfall.mode === "combined"
       ? ["total_collections"]
       : ["interest_collections", "principal_collections"];
-  return [...builtin, ...deal.reserve_accounts.map((r) => `reserve:${r.name}`)];
+  return [
+    ...builtin,
+    ...deal.reserve_accounts.map((r) => `reserve:${r.name}`),
+    ...(deal.external_sources ?? []).map((x) => `external:${x.name}`),
+  ];
 }
 
 export default function WaterfallEditor({ deal, update }: Props) {
@@ -168,7 +172,9 @@ function StepRow({
 
       {step.type === "pay_fees" && (
         <div>
-          <label className="label">Fees (comma-sep)</label>
+          <label className="label">
+            Fees (comma-sep{(deal.external_sources ?? []).some((x) => x.kind === "swap") ? "; swap:<name> = net swap payment" : ""})
+          </label>
           <input className="input w-40" value={(step.fees ?? []).join(",")}
             onChange={(e) => set({ fees: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} />
         </div>

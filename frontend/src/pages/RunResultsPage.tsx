@@ -83,6 +83,15 @@ export default function RunResultsPage() {
         </div>
       )}
 
+      {Object.keys(res.externals ?? {}).length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-slate-700">
+            External sources (net amount; receipt = cash seeded into external:&lt;name&gt;)
+          </h2>
+          <CashflowTable columns={res.externals} />
+        </div>
+      )}
+
       {Object.keys(res.triggers ?? {}).length > 0 && (
         <div className="card">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">

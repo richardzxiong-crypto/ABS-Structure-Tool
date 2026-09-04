@@ -27,10 +27,15 @@ def check_supported(deal: Deal) -> None:
                     f"(set deal.dates for a payment calendar)"
                 )
 
-    for wf in deal.waterfall.waterfalls:
-        for step in wf.steps:
-            if step.source.startswith("external:"):
-                raise UnsupportedFeatureError(f"step {step.id}: external sources are not implemented yet")
+    for x in deal.external_sources:
+        if x.kind == "swap" and (
+            any(s.index_curves.get(x.index) is None for s in deal.scenarios)
+        ):
+            missing = [s.name for s in deal.scenarios if s.index_curves.get(x.index) is None]
+            raise UnsupportedFeatureError(
+                f"external source {x.name!r}: swap index {x.index!r} has no curve in "
+                f"scenario(s) {missing} (index_curves)"
+            )
     for trig in deal.triggers:
         if trig.type == "delinquency":
             raise UnsupportedFeatureError(
@@ -94,5 +99,6 @@ def run_deal(deal: Deal, scenario: Scenario | str | None = None) -> DealRunResul
         seeded=wf.seeded,
         accounts=wf.accounts,
         triggers=wf.triggers,
+        externals=wf.externals,
         metrics=metrics,
     )

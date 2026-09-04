@@ -69,6 +69,20 @@ export interface YsocConfig {
 
 export type PoolBasis = "trust" | "performing" | "adjusted";
 
+export interface ExternalSource {
+  name: string;
+  kind: "amount" | "swap";
+  amount: RateSpec;
+  start_period: number;
+  end_period?: number | null;
+  notional_class?: string | null;
+  notional_schedule?: number[];
+  fixed_rate?: number;
+  index?: string;
+  spread?: number;
+  day_count?: "30/360" | "ACT/360" | "ACT/365";
+}
+
 export interface Trigger {
   type: "cum_net_loss" | "delinquency" | "pool_factor" | "oc_test" | "ic_test";
   name: string;
@@ -146,6 +160,9 @@ export interface Scenario {
   };
   recoveries_to: "principal" | "interest";
   index_curves?: Record<string, RateSpec>;
+  external_amounts?: Record<string, RateSpec>;
+  delinquency?: RateSpec;
+  delinquency_cash_effect?: "none" | "withhold";
 }
 
 export interface Deal {
@@ -165,6 +182,7 @@ export interface Deal {
   fees: FeeSpec[];
   reserve_accounts: ReserveAccount[];
   ysoc: YsocConfig | null;
+  external_sources: ExternalSource[];
   waterfall: { mode: "split" | "combined"; waterfalls: { name: string; steps: WaterfallStep[] }[] };
   triggers: Trigger[];
   scenarios: Scenario[];
@@ -190,6 +208,7 @@ export interface RunResult {
   retained: number[];
   accounts: Record<string, (number | string)[]>;
   triggers: Record<string, (number | string | null)[]>;
+  externals: Record<string, (number | string)[]>;
   metrics: {
     bonds: Record<
       string,

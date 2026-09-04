@@ -58,7 +58,10 @@ per-period schedule or a pct-of-pool target, excess to companions) nesting
 to arbitrary depth.
 
 **Waterfall** — ordered steps, each `source → action → targets`:
-sources are named cash buckets including `reserve:<name>` accounts; actions
+sources are named cash buckets including `reserve:<name>` accounts and
+`external:<name>` sources (fixed per-period amounts or interest-rate swap
+receipts on a class balance; net swap payments are due as `swap:<name>` in
+a `pay_fees` step); actions
 are registered handlers (`pay_fees`, `pay_interest`,
 `pay_interest_shortfall`, `pay_principal` with `collections`/`regular_pda`/
 `priority_pda`/`turbo` amount rules, `fund_reserve`, `retire_bonds`,
@@ -79,8 +82,7 @@ traps).
 **Analytics** — per-class loss breakevens (principal + timely-interest, CNL
 or CDR dial), prepay × loss sensitivity matrices, price/yield tables.
 
-Planned (modeled, validation-gated): external sources, delinquency
-triggers.
+Planned (modeled, validation-gated): delinquency triggers.
 
 The `sfast-2026-1` golden case pins the engine against a full Intex CF run
 of a $1.5bn prime auto deal (7 classes, YSOC, reserve account, tiered PDAs,

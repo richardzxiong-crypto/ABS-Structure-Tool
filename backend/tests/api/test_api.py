@@ -60,9 +60,17 @@ def test_validate_endpoint(client):
     r = client.post("/api/deals/validate", json=payload).json()
     assert r == {"valid": True, "runnable": True, "errors": []}
 
+    # an undefined external source is a structural error
     payload["waterfall"]["waterfalls"][1]["steps"][0]["source"] = "external:swap"
     r = client.post("/api/deals/validate", json=payload).json()
+    assert r["valid"] is False and any("external" in e for e in r["errors"])
+
+    # a swap whose index has no curve in a scenario is valid but not runnable
+    payload["external_sources"] = [{"name": "swap", "kind": "swap", "notional_class": "A",
+                                    "fixed_rate": 0.04, "index": "SOFR"}]
+    r = client.post("/api/deals/validate", json=payload).json()
     assert r["valid"] is True and r["runnable"] is False
+    del payload["external_sources"]
 
     payload["waterfall"]["waterfalls"][1]["steps"][0]["source"] = "principal_collections"
     payload["waterfall"]["waterfalls"][1]["steps"][0]["amount_rule"] = "bogus"

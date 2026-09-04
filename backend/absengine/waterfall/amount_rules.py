@@ -12,6 +12,13 @@ def fee_due(state: EngineState, fee: FeeSpec) -> float:
     return state.pool_basis_beg(fee.basis) * fee.rate / 12.0 + fee.fixed
 
 
+def fee_due_by_name(state: EngineState, name: str) -> float:
+    """FeeSpec due, or the net payment owed on a swap ("swap:<source>")."""
+    if name.startswith("swap:"):
+        return max(0.0, -state.external_net_p.get(name.split(":", 1)[1], 0.0))
+    return fee_due(state, state.fees_by_name[name])
+
+
 def interest_capacity(state: EngineState):
     return lambda cid: state.bonds[cid].interest_unpaid_p
 

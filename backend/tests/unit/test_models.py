@@ -58,12 +58,11 @@ def test_rejects_act_daycount_without_dates():
         check_phase1_support(deal)
 
 
-def test_rejects_external_source():
+def test_rejects_undefined_external_source():
     cfg = make_deal().model_dump()
     cfg["waterfall"]["waterfalls"][0]["steps"][0]["source"] = "external:swap"
-    deal = Deal.model_validate(cfg)
-    with pytest.raises(UnsupportedFeatureError, match="external"):
-        check_phase1_support(deal)
+    with pytest.raises(ValidationError, match="unknown external source"):
+        Deal.model_validate(cfg)
 
 
 def test_every_step_type_has_a_handler():

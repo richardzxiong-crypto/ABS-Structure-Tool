@@ -1,4 +1,4 @@
-import type { Deal, FeeSpec, ReserveAccount, Trigger } from "../../api/client";
+import type { Deal, ExternalSource, FeeSpec, ReserveAccount, Trigger } from "../../api/client";
 
 interface Props {
   deal: Deal;
@@ -16,6 +16,7 @@ export default function DealSettings({ deal, update }: Props) {
         <ReservesCard deal={deal} update={update} />
       </div>
       <YsocCard deal={deal} update={update} />
+      <ExternalSourcesCard deal={deal} update={update} />
       <TriggersCard deal={deal} update={update} />
     </div>
   );
@@ -363,6 +364,137 @@ function YsocCard({ deal, update }: Props) {
           can then reference the adjusted basis).
         </p>
       )}
+    </div>
+  );
+}
+
+function ExternalSourcesCard({ deal, update }: Props) {
+  const sources = deal.external_sources ?? [];
+  const setSrc = (i: number, fn: (x: ExternalSource) => void) =>
+    update((d) => { fn(d.external_sources[i]); });
+  return (
+    <div className="card space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-700">
+          External cash sources (steps draw via <code>external:&lt;name&gt;</code>)
+        </h2>
+        <button className="btn"
+          onClick={() =>
+            update((d) => {
+              d.external_sources = d.external_sources ?? [];
+              d.external_sources.push({
+                name: `source_${d.external_sources.length + 1}`, kind: "amount",
+                amount: { type: "scalar", value: 0 }, start_period: 1, end_period: null,
+              });
+            })
+          }>
+          + Add
+        </button>
+      </div>
+      {sources.length === 0 && (
+        <p className="text-xs text-slate-500">
+          None. Add a fixed per-period amount (sponsor top-up, prefunding release) or an
+          interest-rate swap (trust pays fixed, receives index + spread on a class balance;
+          net receipts are seeded into the bucket, net payments are paid by listing
+          <code> swap:&lt;name&gt;</code> in a pay_fees step). Unused cash is retained unless a
+          release_residual step sweeps the bucket.
+        </p>
+      )}
+      {sources.map((x: ExternalSource, i) => (
+        <div key={i} className="flex flex-wrap items-end gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+          <div>
+            <label className="label">Name</label>
+            <input className="input w-28" value={x.name}
+              onChange={(e) => setSrc(i, (s) => { s.name = e.target.value; })} />
+          </div>
+          <div>
+            <label className="label">Kind</label>
+            <select className="input w-24" value={x.kind}
+              onChange={(e) =>
+                setSrc(i, (s) => {
+                  s.kind = e.target.value as ExternalSource["kind"];
+                  if (s.kind === "swap") {
+                    s.notional_class = s.notional_class ?? deal.structure.classes[0]?.id ?? null;
+                    s.index = s.index || "SOFR";
+                    s.fixed_rate = s.fixed_rate ?? 0;
+                    s.spread = s.spread ?? 0;
+                  }
+                })
+              }>
+              <option>amount</option>
+              <option>swap</option>
+            </select>
+          </div>
+          {x.kind === "amount" ? (
+            <div>
+              <label className="label">Amount / period</label>
+              <input className="input w-28" type="number"
+                value={x.amount.type === "scalar" ? x.amount.value : undefined}
+                disabled={x.amount.type !== "scalar"}
+                placeholder={x.amount.type !== "scalar" ? `(${x.amount.type})` : ""}
+                onChange={(e) => setSrc(i, (s) => { s.amount = { type: "scalar", value: Number(e.target.value) }; })} />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="label">Notional = class balance</label>
+                <select className="input w-24" value={x.notional_class ?? ""}
+                  onChange={(e) => setSrc(i, (s) => { s.notional_class = e.target.value || null; })}>
+                  <option value="">(schedule)</option>
+                  {deal.structure.classes.map((c) => <option key={c.id}>{c.id}</option>)}
+                </select>
+              </div>
+              {!x.notional_class && (
+                <div>
+                  <label className="label">Notional schedule (comma-sep)</label>
+                  <input className="input w-40 font-mono text-xs" value={(x.notional_schedule ?? []).join(",")}
+                    onChange={(e) =>
+                      setSrc(i, (s) => {
+                        s.notional_schedule = e.target.value.split(",").map((v) => Number(v.trim())).filter((v) => !Number.isNaN(v));
+                      })
+                    } />
+                </div>
+              )}
+              <div>
+                <label className="label">Pay fixed</label>
+                <input className="input w-24" type="number" step="0.0005" value={x.fixed_rate ?? 0}
+                  onChange={(e) => setSrc(i, (s) => { s.fixed_rate = Number(e.target.value); })} />
+              </div>
+              <div>
+                <label className="label">Receive index</label>
+                <input className="input w-24" value={x.index ?? ""}
+                  onChange={(e) => setSrc(i, (s) => { s.index = e.target.value; })} />
+              </div>
+              <div>
+                <label className="label">+ spread</label>
+                <input className="input w-24" type="number" step="0.0005" value={x.spread ?? 0}
+                  onChange={(e) => setSrc(i, (s) => { s.spread = Number(e.target.value); })} />
+              </div>
+              <div>
+                <label className="label">Day count</label>
+                <select className="input w-24" value={x.day_count ?? "30/360"}
+                  onChange={(e) => setSrc(i, (s) => { s.day_count = e.target.value as ExternalSource["day_count"]; })}>
+                  <option>30/360</option>
+                  <option>ACT/360</option>
+                  <option>ACT/365</option>
+                </select>
+              </div>
+            </>
+          )}
+          <div>
+            <label className="label">From period</label>
+            <input className="input w-20" type="number" min={1} value={x.start_period}
+              onChange={(e) => setSrc(i, (s) => { s.start_period = Number(e.target.value); })} />
+          </div>
+          <div>
+            <label className="label">To period (opt.)</label>
+            <input className="input w-20" type="number" min={1} value={x.end_period ?? ""}
+              onChange={(e) => setSrc(i, (s) => { s.end_period = e.target.value === "" ? null : Number(e.target.value); })} />
+          </div>
+          <button className="btn-ghost text-red-600"
+            onClick={() => update((d) => { d.external_sources.splice(i, 1); })}>✕</button>
+        </div>
+      ))}
     </div>
   );
 }

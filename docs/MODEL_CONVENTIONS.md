@@ -167,6 +167,27 @@ Funding delay 1: everything shifts one trust period later (trust period 1 empty)
 - Final period: any remaining bond balance becomes a writedown, applied in
   reverse seniority (depth-first allocation-tree leaf order).
 
+## External cash sources (`deal.external_sources`)
+
+- Each source seeds a `external:<name>` bucket every period in
+  `[start_period, end_period]` (both inclusive; open-ended by default). Steps
+  draw from it like any collections bucket; whatever is left at period end is
+  **retained** (add a `release_residual` step sourced from the bucket to
+  sweep it to the residual).
+- `kind: "amount"`: `amount` dollars per period (scalar / vector / ramp;
+  negatives floored at 0). `scenario.external_amounts[<name>]` overrides the
+  deal-level amount for that scenario.
+- `kind: "swap"`: trust pays `fixed_rate`, receives `index + spread` (the
+  index from the scenario's `index_curves`) on a notional equal to
+  `notional_class`'s **beginning** balance (or `notional_schedule`, last
+  value extended). `net_t = notional_t × (index_t + spread − fixed_rate) ×
+  accrual_t`, with `accrual_t` the period's day-count fraction on the deal
+  calendar (1/12 without dates). `receipt_t = max(net_t, 0)` is seeded; a
+  negative net is what the trust owes and is due to a `pay_fees` step listing
+  `swap:<name>` (the same twin-step composition as other fees applies).
+- The run result's `externals` table carries `net` and `receipt` per
+  (period, source).
+
 ## Triggers & step conditions
 
 - Triggers are evaluated at **determination** - period start, after bond
