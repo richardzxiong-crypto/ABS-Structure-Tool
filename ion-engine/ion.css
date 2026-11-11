@@ -1,0 +1,11 @@
+.ie-stage { position: relative; touch-action: pan-y; outline: none; }
+.ie-stage:focus-visible { box-shadow: 0 0 0 1px var(--anatomy-mid); }
+.ie-stage > svg, .ie-stage > canvas { display: block; width: 100%; height: auto; }
+.ie-stage > .ie-layer { position: absolute; inset: 0; height: 100% !important; pointer-events: none; }
+.iso:not([data-theme="light"]) .ie-gl { mix-blend-mode: screen; }
+.ie-stage { --ie-ion: #2f6fe6; }
+.iso:not([data-theme="light"]) .ie-stage { --ie-ion: #8fc0ff; }
+.ie-fallback { opacity: var(--ie-beam, 0); --anatomy-lit: var(--ie-ion); }
+.ie-stage[data-gl] .ie-fallback { display: none; }
+.iso-swatch[data-mark="blue"] path { stroke: var(--ie-ion, var(--anatomy-blue)); }
+.ie-stage [data-part="holes"] circle { fill: color-mix(in srgb, var(--anatomy-dot), var(--ie-ion) calc(var(--ie-beam, 0) * 100%)); opacity: calc(.6 + .4 * var(--ie-beam, 0)); }
